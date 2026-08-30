@@ -14,6 +14,12 @@ import {
 } from '../types';
 import { localStore } from './localStore';
 import { cloudSync } from './cloudSync';
+import {
+  INITIAL_CATEGORIES,
+  INITIAL_MENU_ITEMS,
+  INITIAL_RESTAURANTS,
+  INITIAL_TABLES
+} from '../data/initialData';
 
 export const API_BASE = '/api';
 
@@ -110,10 +116,14 @@ async function safeFetch<T>(fetchFn: () => Promise<Response>, fallbackFn: () => 
 export const api = {
   // Restaurants
   async getRestaurants(): Promise<Restaurant[]> {
-    return safeFetch(
+    const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants`),
       () => localStore.getAllRestaurants()
     );
+    if (!list || list.length === 0) {
+      return [...INITIAL_RESTAURANTS];
+    }
+    return list;
   },
 
   async getRestaurant(slugOrId: string): Promise<Restaurant> {
@@ -124,7 +134,7 @@ export const api = {
         if (!r) {
           // fallback to first restaurant
           const all = localStore.getAllRestaurants();
-          return all[0];
+          return (all && all.length > 0) ? all[0] : INITIAL_RESTAURANTS[0];
         }
         return r;
       }
@@ -168,10 +178,14 @@ export const api = {
 
   // Categories
   async getCategories(restaurantId: string): Promise<Category[]> {
-    return safeFetch(
+    const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/categories`),
       () => localStore.getCategories(restaurantId)
     );
+    if (!list || list.length === 0) {
+      return [...INITIAL_CATEGORIES];
+    }
+    return list;
   },
 
   async createCategory(restaurantId: string, name: string, hindiName?: string): Promise<Category> {
@@ -212,10 +226,14 @@ export const api = {
 
   // Menu Items
   async getMenuItems(restaurantId: string): Promise<MenuItem[]> {
-    return safeFetch(
+    const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/menu`),
       () => localStore.getMenuItems(restaurantId)
     );
+    if (!list || list.length === 0) {
+      return [...INITIAL_MENU_ITEMS];
+    }
+    return list;
   },
 
   async createMenuItem(restaurantId: string, itemData: Partial<MenuItem>): Promise<MenuItem> {
@@ -256,10 +274,14 @@ export const api = {
 
   // Tables
   async getTables(restaurantId: string): Promise<TableInfo[]> {
-    return safeFetch(
+    const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/tables`),
       () => localStore.getTables(restaurantId)
     );
+    if (!list || list.length === 0) {
+      return [...INITIAL_TABLES];
+    }
+    return list;
   },
 
   async createTable(restaurantId: string, tableNumber: string, capacity: number = 4): Promise<TableInfo> {

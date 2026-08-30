@@ -126,18 +126,41 @@ export const CustomerMenu: React.FC = () => {
 
   // Group dishes by active category for organized layout
   const groupedCategories = useMemo(() => {
+    const activeCats = categories && categories.length > 0 ? categories : [];
     if (selectedCategoryId !== 'all') {
-      const cat = (categories || []).find(c => c.id === selectedCategoryId);
-      if (!cat) return [];
+      const cat = activeCats.find(c => c.id === selectedCategoryId);
+      if (!cat) {
+        return [{ category: { id: selectedCategoryId, restaurantId: 'rest_raj_001', name: 'Menu Items', hindiName: 'मेन्यू', sortOrder: 1, isActive: true }, dishes: filteredDishes || [] }];
+      }
       return [{ category: cat, dishes: filteredDishes || [] }];
     }
 
-    return (categories || [])
+    const groups = activeCats
       .map(cat => ({
         category: cat,
         dishes: (filteredDishes || []).filter(d => d.categoryId === cat.id)
       }))
       .filter(group => group.dishes.length > 0);
+
+    // If any dishes didn't match known category IDs, add them in an extra section so no item is ever hidden
+    const categorizedDishIds = new Set(groups.flatMap(g => g.dishes.map(d => d.id)));
+    const uncategorizedDishes = (filteredDishes || []).filter(d => !categorizedDishIds.has(d.id));
+    if (uncategorizedDishes.length > 0) {
+      groups.push({
+        category: { id: 'cat_more', restaurantId: 'rest_raj_001', name: 'More Specialties', hindiName: 'अन्य व्यंजन', sortOrder: 99, isActive: true },
+        dishes: uncategorizedDishes
+      });
+    }
+
+    // Ultimate fallback if no categories exist but dishes exist
+    if (groups.length === 0 && (filteredDishes || []).length > 0) {
+      return [{
+        category: { id: 'cat_all', restaurantId: 'rest_raj_001', name: 'All Dishes', hindiName: 'सभी व्यंजन', sortOrder: 1, isActive: true },
+        dishes: filteredDishes || []
+      }];
+    }
+
+    return groups;
   }, [categories, filteredDishes, selectedCategoryId]);
 
   const activeOrder = customerOrders[0] || null;

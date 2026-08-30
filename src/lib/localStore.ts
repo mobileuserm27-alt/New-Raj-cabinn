@@ -75,10 +75,22 @@ class LocalStoreEngine {
     this.staff = getItem(STORAGE_KEYS.STAFF, [...INITIAL_STAFF]);
     this.subscriptions = getItem(STORAGE_KEYS.SUBSCRIPTIONS, [...INITIAL_SUBSCRIPTIONS]);
 
-    // Ensure New Raj Cabin exists
-    if (!this.restaurants.some(r => r.slug === 'raj-cabin')) {
+    // Ensure New Raj Cabin and all essentials exist and are populated
+    if (!this.restaurants || this.restaurants.length === 0 || !this.restaurants.some(r => r.slug === 'raj-cabin')) {
       this.restaurants = [...INITIAL_RESTAURANTS];
       this.saveRestaurants();
+    }
+    if (!this.categories || this.categories.length === 0) {
+      this.categories = [...INITIAL_CATEGORIES];
+      this.saveCategories();
+    }
+    if (!this.menuItems || this.menuItems.length === 0) {
+      this.menuItems = [...INITIAL_MENU_ITEMS];
+      this.saveMenuItems();
+    }
+    if (!this.tables || this.tables.length === 0) {
+      this.tables = [...INITIAL_TABLES];
+      this.saveTables();
     }
   }
 
@@ -167,9 +179,15 @@ class LocalStoreEngine {
 
   // --- CATEGORIES ---
   getCategories(restaurantId: string): Category[] {
-    return this.categories
+    let list = this.categories
       .filter(c => c.restaurantId === restaurantId || c.restaurantId === 'rest_raj_001')
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    if (!list || list.length === 0) {
+      this.categories = [...INITIAL_CATEGORIES];
+      this.saveCategories();
+      list = [...INITIAL_CATEGORIES];
+    }
+    return list;
   }
 
   createCategory(restaurantId: string, name: string, hindiName?: string): Category {
@@ -203,7 +221,13 @@ class LocalStoreEngine {
 
   // --- MENU ITEMS ---
   getMenuItems(restaurantId: string): MenuItem[] {
-    return this.menuItems.filter(m => m.restaurantId === restaurantId || m.restaurantId === 'rest_raj_001');
+    let list = this.menuItems.filter(m => m.restaurantId === restaurantId || m.restaurantId === 'rest_raj_001');
+    if (!list || list.length === 0) {
+      this.menuItems = [...INITIAL_MENU_ITEMS];
+      this.saveMenuItems();
+      list = [...INITIAL_MENU_ITEMS];
+    }
+    return list;
   }
 
   createMenuItem(restaurantId: string, data: Partial<MenuItem>): MenuItem {

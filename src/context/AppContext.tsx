@@ -4,6 +4,12 @@ import { cloudSync, CloudSyncEvent } from '../lib/cloudSync';
 import { localStore } from '../lib/localStore';
 import { translations, Language } from '../lib/translations';
 import {
+  INITIAL_CATEGORIES,
+  INITIAL_MENU_ITEMS,
+  INITIAL_RESTAURANTS,
+  INITIAL_TABLES
+} from '../data/initialData';
+import {
   AdminTab,
   Category,
   CartItem,
@@ -215,14 +221,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [tables, setTables] = useState<TableInfo[]>([]);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(() => INITIAL_RESTAURANTS[0]);
+  const [categories, setCategories] = useState<Category[]>(() => INITIAL_CATEGORIES);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => INITIAL_MENU_ITEMS);
+  const [tables, setTables] = useState<TableInfo[]>(() => INITIAL_TABLES);
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiterRequests, setWaiterRequests] = useState<WaiterRequest[]>([]);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
+  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>(() => INITIAL_RESTAURANTS);
 
   const [currentStaff, setCurrentStaff] = useState<StaffMember>({
     id: 'staff_1',
@@ -474,9 +480,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
-        setCategories(cats);
-        setMenuItems(items);
-        setTables(tbls);
+        const finalCats = (cats && cats.length > 0) ? cats : INITIAL_CATEGORIES;
+        const finalItems = (items && items.length > 0) ? items : INITIAL_MENU_ITEMS;
+        const finalTables = (tbls && tbls.length > 0) ? tbls : INITIAL_TABLES;
+
+        setCategories(finalCats);
+        setMenuItems(finalItems);
+        setTables(finalTables);
         setOrders(mergedOrders);
 
         // Merge waiter requests
