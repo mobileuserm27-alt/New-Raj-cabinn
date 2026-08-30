@@ -1,0 +1,6 @@
+{
+  "name": "New Raj Cabin - QR Dining",
+  "description": "Digital contactless QR menu and dining system for New Raj Cabin (Multi-Cuisine Restaurant & Rooftop Dining, Naihati, Kolkata).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

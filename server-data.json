@@ -1,0 +1,890 @@
+{
+  "restaurants": [
+    {
+      "id": "rest_raj_001",
+      "slug": "raj-cabin",
+      "name": "New Raj Cabin",
+      "description": "Multi-Cuisine Restaurant, Rooftop Dining & Banquet Hall since 1989. Serving authentic Kolkata Biryanis, Bengali Specialities (Daab Chingri, Kosha Mangsho), Tandoori Kebabs, Chinese & Mughlai Delicacies.",
+      "phone": "+91 98316 84703",
+      "email": "contact@rajcabin.in",
+      "address": "Building No. 116, 28, Rishi Bankim Chandra Road (R.B.C Road), Opposite Naihati Railway Station, Natun Bazar",
+      "city": "Naihati, Kolkata",
+      "state": "West Bengal",
+      "pincode": "743165",
+      "cuisineTypes": [
+        "Biryani & Mughlai",
+        "Bengali Delicacies",
+        "Tandoor & Starters",
+        "Chinese & Chowmein",
+        "Bakery & Cafe",
+        "North Indian"
+      ],
+      "dietaryType": "non_veg_available",
+      "rating": 4.8,
+      "reviewCount": 3850,
+      "isOpen": true,
+      "openingHours": "11:00 AM - 11:00 PM",
+      "planId": "premium",
+      "isSuspended": false,
+      "createdAt": "2025-08-28T13:19:27.845Z",
+      "branding": {
+        "primaryColor": "#e11d48",
+        "secondaryColor": "#f59e0b",
+        "logoUrl": "/images/raj-cabin-logo.jpg",
+        "coverImageUrl": "/images/raj-cabin-exterior.jpg",
+        "tagline": "Multi-Cuisine Restaurant & Rooftop Dining | Since 1989",
+        "currencySymbol": "₹",
+        "taxPercentage": 0,
+        "serviceChargePercentage": 0,
+        "gstNumber": ""
+      }
+    },
+    {
+      "id": "rest_royal_001",
+      "slug": "royal-spice-001",
+      "name": "New Raj Cabin",
+      "description": "Multi-Cuisine Restaurant, Rooftop Dining & Banquet Hall since 1989. Serving authentic Kolkata Biryanis, Bengali Specialities (Daab Chingri, Kosha Mangsho), Tandoori Kebabs, Chinese & Mughlai Delicacies.",
+      "phone": "+91 98316 84703",
+      "email": "contact@rajcabin.in",
+      "address": "Building No. 116, 28, Rishi Bankim Chandra Road (R.B.C Road), Opposite Naihati Railway Station, Natun Bazar",
+      "city": "Naihati, Kolkata",
+      "state": "West Bengal",
+      "pincode": "743165",
+      "cuisineTypes": [
+        "Biryani & Mughlai",
+        "Bengali Delicacies",
+        "Tandoor & Starters",
+        "Chinese & Chowmein",
+        "Bakery & Cafe",
+        "North Indian"
+      ],
+      "dietaryType": "non_veg_available",
+      "rating": 4.8,
+      "reviewCount": 3850,
+      "isOpen": true,
+      "openingHours": "11:00 AM - 11:00 PM",
+      "planId": "premium",
+      "isSuspended": false,
+      "createdAt": "2025-08-28T13:19:27.845Z",
+      "branding": {
+        "primaryColor": "#e11d48",
+        "secondaryColor": "#f59e0b",
+        "logoUrl": "/images/raj-cabin-logo.jpg",
+        "coverImageUrl": "/images/raj-cabin-exterior.jpg",
+        "tagline": "Multi-Cuisine Restaurant & Rooftop Dining | Since 1989",
+        "currencySymbol": "₹",
+        "taxPercentage": 0,
+        "serviceChargePercentage": 0,
+        "gstNumber": ""
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_rc_1",
+      "restaurantId": "rest_raj_001",
+      "name": "Raj Cabin Chef's Specials",
+      "hindiName": "शेफ के विशेष सुझाव",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_2",
+      "restaurantId": "rest_raj_001",
+      "name": "Biryani & Mughlai Handi",
+      "hindiName": "शाही बिरयानी और चाप",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_3",
+      "restaurantId": "rest_raj_001",
+      "name": "Tandoori Starters & Kebabs",
+      "hindiName": "तंदूरी स्टार्टर्स और कबाब",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_4",
+      "restaurantId": "rest_raj_001",
+      "name": "Bengali & Indian Main Course",
+      "hindiName": "पारंपरिक करी और दाल",
+      "sortOrder": 4,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_5",
+      "restaurantId": "rest_raj_001",
+      "name": "Chinese, Chowmein & Rice",
+      "hindiName": "चाइनीज, नूडल्स और फ्राइड राइस",
+      "sortOrder": 5,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_6",
+      "restaurantId": "rest_raj_001",
+      "name": "Kolkata Rolls & Tandoori Breads",
+      "hindiName": "रोल, नान और पराठे",
+      "sortOrder": 6,
+      "isActive": true
+    },
+    {
+      "id": "cat_rc_7",
+      "restaurantId": "rest_raj_001",
+      "name": "Bakery, Sweets & Beverages",
+      "hindiName": "मीठा, कुल्हड़ चाय और ड्रिंक्स",
+      "sortOrder": 7,
+      "isActive": true
+    }
+  ],
+  "menuItems": [
+    {
+      "id": "item_rc_1",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_1",
+      "name": "Raj Cabin Special Mutton Biryani",
+      "hindiName": "राज केबिन स्पेशल मटन बिरयानी",
+      "description": "Aromatic aged Basmati rice slow-cooked with tender juicy mutton piece, royal spices, saffron, ghee, and the classic golden Kolkata aloo.",
+      "price": 250,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "isChefSpecial": true,
+      "preparationTimeMinutes": 18,
+      "variants": [
+        {
+          "id": "v_mb_single",
+          "name": "Special Single (1 Mutton + 1 Aloo)",
+          "price": 250
+        },
+        {
+          "id": "v_mb_double",
+          "name": "Double Mutton Handi (2 Mutton + 2 Aloo)",
+          "price": 440
+        }
+      ],
+      "addons": [
+        {
+          "id": "a_extra_egg",
+          "name": "Boiled Egg Garnish",
+          "price": 20
+        },
+        {
+          "id": "a_raita",
+          "name": "Chilled Boondi Raita",
+          "price": 35
+        },
+        {
+          "id": "a_extra_aloo",
+          "name": "Extra Kolkata Spiced Aloo",
+          "price": 30
+        }
+      ]
+    },
+    {
+      "id": "item_rc_2",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_1",
+      "name": "Daab Chingri (Signature Bengali Prawns)",
+      "hindiName": "दाब चिंगरी (स्पेशल प्रॉन्स)",
+      "description": "Fresh jumbo Bay of Bengal prawns cooked inside tender green coconut with freshly ground mustard, coconut cream, and green chilies.",
+      "price": 380,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "isChefSpecial": true,
+      "preparationTimeMinutes": 22,
+      "addons": [
+        {
+          "id": "a_steamed_rice",
+          "name": "Portion of Steamed Basmati Rice",
+          "price": 60
+        }
+      ]
+    },
+    {
+      "id": "item_rc_3",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_1",
+      "name": "Special Chicken Chaap",
+      "hindiName": "स्पेशल चिकन चाप",
+      "description": "Slow-simmered whole chicken leg piece in rich poppy seed, cashew, saffron, and aromatic rose-scented Mughlai gravy.",
+      "price": 129,
+      "dietType": "non_veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "isChefSpecial": true,
+      "preparationTimeMinutes": 15,
+      "addons": [
+        {
+          "id": "a_extra_chaap_gravy",
+          "name": "Extra Chaap Gravy",
+          "price": 40
+        }
+      ]
+    },
+    {
+      "id": "item_rc_4",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_1",
+      "name": "Champaran Handi Mutton (Ahuna Style)",
+      "hindiName": "चंपारण हांडी मटन",
+      "description": "Tender baby mutton marinated in mustard oil, whole garlic bulbs, and crushed desi spices, slow-cooked in a sealed earthen clay handi over charcoal.",
+      "price": 340,
+      "dietType": "non_veg",
+      "spiceLevel": "spicy",
+      "imageUrl": "https://images.unsplash.com/photo-1545247181-516773cae7be?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "isChefSpecial": true,
+      "preparationTimeMinutes": 25,
+      "variants": [
+        {
+          "id": "v_chm_half",
+          "name": "Half Handi (4 Pcs)",
+          "price": 340
+        },
+        {
+          "id": "v_chm_full",
+          "name": "Full Handi (8 Pcs)",
+          "price": 620
+        }
+      ]
+    },
+    {
+      "id": "item_rc_5",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_2",
+      "name": "Raj Cabin Special Chicken Biryani",
+      "hindiName": "राज केबिन चिकन बिरयानी",
+      "description": "Succulent chicken piece cooked with Basmati rice on dum with saffron, kewra water, caramelized onions, and spiced Kolkata aloo.",
+      "price": 190,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 15,
+      "variants": [
+        {
+          "id": "v_cb_single",
+          "name": "Single Portion (1 Pc Chicken + 1 Aloo)",
+          "price": 190
+        },
+        {
+          "id": "v_cb_jumbo",
+          "name": "Special Double Chicken (2 Pcs + 1 Egg + 2 Aloo)",
+          "price": 299
+        }
+      ],
+      "addons": [
+        {
+          "id": "a_extra_egg_2",
+          "name": "Boiled Egg (1 Pc)",
+          "price": 15
+        },
+        {
+          "id": "a_salan",
+          "name": "Mirchi Ka Salan",
+          "price": 35
+        }
+      ]
+    },
+    {
+      "id": "item_rc_6",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_2",
+      "name": "Special Aloo Biryani (Kolkata Style)",
+      "hindiName": "स्पेशल आलू बिरयानी",
+      "description": "Fragrant saffron dum rice cooked with two melt-in-mouth Kolkata spiced potatoes, brown onions, and pure desi ghee.",
+      "price": 140,
+      "dietType": "veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1645177628172-a94c1f96e6db?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 12
+    },
+    {
+      "id": "item_rc_7",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_3",
+      "name": "Boneless Chicken 65 (6 Pcs)",
+      "hindiName": "चिकन 65 (बोनलेस)",
+      "description": "Crispy fried boneless chicken bites tossed with spicy South-Indian curry leaves, mustard seeds, and crushed green chilies.",
+      "price": 270,
+      "dietType": "non_veg",
+      "spiceLevel": "spicy",
+      "imageUrl": "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 14
+    },
+    {
+      "id": "item_rc_8",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_3",
+      "name": "Chicken Hariyali Kebab (6 Pcs)",
+      "hindiName": "चिकन हरियाली कबाब",
+      "description": "Juicy chicken cubes marinated in freshly crushed mint, coriander, ginger, hung curd, and roasted over clay tandoor.",
+      "price": 250,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 16
+    },
+    {
+      "id": "item_rc_9",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_3",
+      "name": "Crispy Chilli Baby Corn",
+      "hindiName": "क्रिस्पी चिली बेबी कॉर्न",
+      "description": "Golden batter-fried fresh baby corn wok-tossed with capsicum, scallions, and tangy fiery garlic chili glaze.",
+      "price": 230,
+      "dietType": "veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1514944298352-f542453e9ea4?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 12
+    },
+    {
+      "id": "item_rc_10",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_3",
+      "name": "Chicken Pakoda (8 Pcs)",
+      "hindiName": "चिकन पकोड़ा",
+      "description": "Classic Kolkata tea-time snack of spiced crispy batter-fried chicken bites served with hot mustard kasundi and salad.",
+      "price": 220,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 12
+    },
+    {
+      "id": "item_rc_11",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_4",
+      "name": "Paneer Butter Masala",
+      "hindiName": "पनीर बटर मसाला",
+      "description": "Fresh malai paneer cubes simmered in a velvety buttery cashew and tomato makhani gravy seasoned with kasuri methi.",
+      "price": 320,
+      "dietType": "veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 15,
+      "addons": [
+        {
+          "id": "a_extra_cheese",
+          "name": "Grated Amul Cheese",
+          "price": 35
+        },
+        {
+          "id": "a_extra_butter",
+          "name": "Fresh Butter Dollop",
+          "price": 20
+        }
+      ]
+    },
+    {
+      "id": "item_rc_12",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_4",
+      "name": "Kadai Paneer",
+      "hindiName": "कड़ाही पनीर",
+      "description": "Fresh paneer tossed with crunchy capsicum, onions, and freshly ground coriander, black pepper, and whole red chilies.",
+      "price": 320,
+      "dietType": "veg",
+      "spiceLevel": "spicy",
+      "imageUrl": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 14
+    },
+    {
+      "id": "item_rc_13",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_4",
+      "name": "Kosha Mangsho (Authentic Bengali Mutton)",
+      "hindiName": "कोशा मांगशो (बंगाली मटन)",
+      "description": "Slow-roasted spicy dark Bengali mutton curry cooked with mustard oil, caramelized onions, cloves, and whole spices.",
+      "price": 320,
+      "dietType": "non_veg",
+      "spiceLevel": "spicy",
+      "imageUrl": "https://images.unsplash.com/photo-1545247181-516773cae7be?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isChefSpecial": true,
+      "preparationTimeMinutes": 20
+    },
+    {
+      "id": "item_rc_14",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_4",
+      "name": "Dal Makhani Bukhara",
+      "hindiName": "दाल मखनी",
+      "description": "Slow-cooked creamy black urad lentils infused with butter, tomato purée, and light spices.",
+      "price": 139,
+      "dietType": "veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 10
+    },
+    {
+      "id": "item_rc_15",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_5",
+      "name": "Chicken Schezwan Chowmein",
+      "hindiName": "चिकन शेजवान चाऊमीन",
+      "description": "Wok-tossed noodles with tender shredded chicken, egg, crunchy bell peppers, cabbage, and homemade spicy Schezwan sauce.",
+      "price": 180,
+      "dietType": "non_veg",
+      "spiceLevel": "spicy",
+      "imageUrl": "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 12
+    },
+    {
+      "id": "item_rc_16",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_5",
+      "name": "Mixed Chilli Garlic Fried Rice",
+      "hindiName": "मिक्स्ड चिली गार्लिक फ्राइड राइस",
+      "description": "Fragrant Basmati rice tossed in high flame with prawns, chicken, egg, toasted golden garlic, and fresh scallions.",
+      "price": 190,
+      "dietType": "non_veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 14
+    },
+    {
+      "id": "item_rc_17",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_5",
+      "name": "Chilli Paneer (Dry / Gravy 6 Pcs)",
+      "hindiName": "चिली पनीर (6 पीस)",
+      "description": "Soft cottage cheese cubes wok-tossed with capsicum, onions, dark soya, and fiery green chili garlic sauce.",
+      "price": 190,
+      "dietType": "veg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 12,
+      "variants": [
+        {
+          "id": "v_cp_dry",
+          "name": "Dry Starter Style",
+          "price": 190
+        },
+        {
+          "id": "v_cp_gravy",
+          "name": "Rich Gravy (For Rice & Noodles)",
+          "price": 190
+        }
+      ]
+    },
+    {
+      "id": "item_rc_18",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_5",
+      "name": "Egg Singapuri Fried Rice",
+      "hindiName": "एग सिंगापुरी फ्राइड राइस",
+      "description": "Stir-fried Basmati rice with fluffy eggs, turmeric zest, crunchy vegetables, and mild Singaporean yellow curry aroma.",
+      "price": 160,
+      "dietType": "egg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 12
+    },
+    {
+      "id": "item_rc_19",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_6",
+      "name": "Double Egg Mughlai Paratha",
+      "hindiName": "डबल एग मुग़लई पराठा",
+      "description": "Crisp layered deep-fried Kolkata Mughlai paratha stuffed with beaten spiced double eggs, minced onions, and green chilies. Served with aloo dum.",
+      "price": 140,
+      "dietType": "egg",
+      "spiceLevel": "medium",
+      "imageUrl": "https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 14
+    },
+    {
+      "id": "item_rc_20",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_6",
+      "name": "Paneer Kathi Roll",
+      "hindiName": "पनीर काठी रोल",
+      "description": "Crispy flaky lachha paratha wrapped around spiced paneer cubes, crunchy sliced onions, lime juice, and chaat masala.",
+      "price": 130,
+      "dietType": "veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 8
+    },
+    {
+      "id": "item_rc_21",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_6",
+      "name": "Tandoori Lachha Paratha",
+      "hindiName": "तंदूरी लच्छा पराठा",
+      "description": "Multi-layered crispy wheat bread roasted in charcoal tandoor and brushed with fresh pure ghee.",
+      "price": 50,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 5
+    },
+    {
+      "id": "item_rc_22",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_6",
+      "name": "Butter Tandoori Roti",
+      "hindiName": "बटर तंदूरी रोटी",
+      "description": "Crisp whole-wheat flatbread freshly baked in tandoor with generous butter glaze.",
+      "price": 40,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 4
+    },
+    {
+      "id": "item_rc_23",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_6",
+      "name": "Special Masala Dosa",
+      "hindiName": "स्पेशल मसाला डोसा",
+      "description": "Crispy golden South-Indian fermented crepe filled with spiced mustard potato masala, served with hot sambar and coconut chutney.",
+      "price": 109,
+      "dietType": "veg",
+      "spiceLevel": "mild",
+      "imageUrl": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 10,
+      "variants": [
+        {
+          "id": "v_md_plain",
+          "name": "Crispy Plain Dosa",
+          "price": 90
+        },
+        {
+          "id": "v_md_masala",
+          "name": "Special Masala Dosa",
+          "price": 109
+        },
+        {
+          "id": "v_md_butter",
+          "name": "Butter Masala Dosa",
+          "price": 119
+        }
+      ]
+    },
+    {
+      "id": "item_rc_24",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_7",
+      "name": "Hot Gulab Jamun with Rabdi (2 Pcs)",
+      "hindiName": "गुलाब जामुन रबड़ी के साथ",
+      "description": "Fresh khoya dumplings dipped in rose-cardamom syrup served warm alongside chilled creamy Kesariya Rabdi.",
+      "price": 110,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "https://images.unsplash.com/photo-1589119908995-c6837fa14d48?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 5
+    },
+    {
+      "id": "item_rc_25",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_7",
+      "name": "Fresh Lime Soda (Sweet / Salted)",
+      "hindiName": "फ्रेश लाइम सोडा",
+      "description": "Refreshing sparkling soda squeezed with fresh yellow lemons, mint, and black salt.",
+      "price": 60,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 3
+    },
+    {
+      "id": "item_rc_26",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_7",
+      "name": "Artisanal Clay Kulhad Chai",
+      "hindiName": "स्पेशल कुल्हड़ चाय",
+      "description": "Slow-brewed Assam tea leaves with fresh crushed cardamom and ginger served steaming hot in traditional terracotta kulhad.",
+      "price": 35,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&h=400&q=80",
+      "isAvailable": true,
+      "preparationTimeMinutes": 5
+    },
+    {
+      "id": "item_rc_27",
+      "restaurantId": "rest_raj_001",
+      "categoryId": "cat_rc_7",
+      "name": "Bisleri Mineral Water Bottle (1 Litre)",
+      "hindiName": "बिसलेरी मिनरल वाटर बॉटल (1 लीटर)",
+      "description": "Sealed packaged Bisleri mineral water bottle (1 Litre). Available chilled or normal temperature.",
+      "price": 20,
+      "dietType": "veg",
+      "spiceLevel": "none",
+      "imageUrl": "/images/bisleri-water-bottle.jpg",
+      "isAvailable": true,
+      "isPopular": true,
+      "preparationTimeMinutes": 1,
+      "variants": [
+        {
+          "id": "v_wb_chilled",
+          "name": "1 Litre Chilled Bisleri",
+          "price": 20
+        },
+        {
+          "id": "v_wb_normal",
+          "name": "1 Litre Normal Temp Bisleri",
+          "price": 20
+        },
+        {
+          "id": "v_wb_500ml",
+          "name": "500ml Mini Bisleri",
+          "price": 10
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "tbl_rc_1",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "1",
+      "capacity": 2,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_2",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "2",
+      "capacity": 4,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_3",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "3",
+      "capacity": 4,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_4",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "4",
+      "capacity": 6,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_5",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "5",
+      "capacity": 2,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_6",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "6",
+      "capacity": 8,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_12",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "12",
+      "capacity": 4,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rc_15",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "15",
+      "capacity": 4,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rest_raj_001_1787923488483",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "#7",
+      "capacity": 7,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rest_raj_001_1787923521099",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "#8",
+      "capacity": 8,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rest_raj_001_1787923534569",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "#9",
+      "capacity": 9,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rest_raj_001_1787923552726",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "#10",
+      "capacity": 10,
+      "status": "available"
+    },
+    {
+      "id": "tbl_rest_raj_001_1787923561370",
+      "restaurantId": "rest_raj_001",
+      "tableNumber": "#11",
+      "capacity": 11,
+      "status": "available"
+    }
+  ],
+  "orders": [],
+  "waiterRequests": [],
+  "staff": [
+    {
+      "id": "staff_1",
+      "restaurantId": "rest_raj_001",
+      "name": "Raj Cabin Management",
+      "email": "admin@rajcabin.in",
+      "phone": "+91 98316 84703",
+      "role": "owner",
+      "pin": "1234",
+      "isActive": true,
+      "createdAt": "2025-08-28T13:19:27.846Z"
+    },
+    {
+      "id": "staff_2",
+      "restaurantId": "rest_raj_001",
+      "name": "Floor Manager",
+      "email": "manager@rajcabin.in",
+      "phone": "+91 93309 78262",
+      "role": "manager",
+      "pin": "2222",
+      "isActive": true,
+      "createdAt": "2026-03-01T13:19:27.846Z"
+    },
+    {
+      "id": "staff_3",
+      "restaurantId": "rest_raj_001",
+      "name": "Master Chef (Biryani & Tandoor)",
+      "email": "kitchen@rajcabin.in",
+      "phone": "+91 98316 84704",
+      "role": "kitchen",
+      "pin": "3333",
+      "isActive": true,
+      "createdAt": "2026-03-31T13:19:27.846Z"
+    },
+    {
+      "id": "staff_4",
+      "restaurantId": "rest_raj_001",
+      "name": "Dining Staff & Waiter",
+      "email": "service@rajcabin.in",
+      "phone": "+91 98316 84705",
+      "role": "waiter",
+      "pin": "4444",
+      "isActive": true,
+      "createdAt": "2026-05-30T13:19:27.846Z"
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "free",
+      "name": "FREE",
+      "priceMonthly": 0,
+      "description": "Perfect for small kiosks and tasting menus",
+      "features": [
+        "Digital QR Menu",
+        "Basic Contactless Ordering",
+        "Up to 5 Tables",
+        "Standard Support",
+        "Mobile Friendly"
+      ],
+      "maxTables": 5,
+      "maxMenuItems": 30
+    },
+    {
+      "id": "basic",
+      "name": "BASIC",
+      "priceMonthly": 299,
+      "description": "Essential toolkit for small cafes and diners",
+      "features": [
+        "Unlimited Menu Items",
+        "Unlimited QR Code Generation",
+        "Table Ordering System",
+        "Live Order Dashboard",
+        "Waiter Calling & Request System",
+        "Up to 20 Tables"
+      ],
+      "maxTables": 20,
+      "maxMenuItems": 150
+    },
+    {
+      "id": "pro",
+      "name": "PRO",
+      "priceMonthly": 699,
+      "description": "The standard for busy Indian restaurants and bars",
+      "features": [
+        "Everything in Basic",
+        "Real-time Kitchen Display System (KDS)",
+        "Sales & Revenue Analytics",
+        "Custom Restaurant Branding & Theme",
+        "Staff Accounts with Role-Based Access",
+        "Thermal Bill Printing & CSV Export",
+        "Multilingual Menu (English/Hindi)"
+      ],
+      "isPopular": true,
+      "maxTables": 60,
+      "maxMenuItems": 500
+    },
+    {
+      "id": "premium",
+      "name": "PREMIUM",
+      "priceMonthly": 1499,
+      "description": "For restaurant chains, luxury dine-in & cloud kitchens",
+      "features": [
+        "Everything in Pro",
+        "Multi-Branch Architecture",
+        "Advanced Peak-Hour Analytics",
+        "UPI / Razorpay Payment Integration",
+        "Priority 24/7 Dedicated Support",
+        "Custom Domain White-labeling",
+        "Unlimited Tables & Staff"
+      ],
+      "maxTables": 999,
+      "maxMenuItems": 2000
+    }
+  ],
+  "orderCounter": 10248,
+  "savedAt": "2026-08-28T13:27:02.218Z"
+}
