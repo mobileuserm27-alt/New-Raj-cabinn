@@ -1,10 +1,9 @@
 /**
- * Robust Multi-Device Real-Time Cloud Sync Engine
- * Uses high-speed CORS-enabled cloud relay + SSE + Smart Poller + BroadcastChannel
- * Guaranteed to work across mobile phones, tablets, laptops on Netlify static hosting!
+ * High-Speed Multi-Device Real-Time Cloud Sync Engine
+ * Guaranteed to work across mobile phones, tablets, and laptops on Netlify static hosting.
  */
 
-import { Order, WaiterRequest, Restaurant, MenuItem, Category, TableInfo } from '../types';
+import { Order, WaiterRequest } from '../types';
 
 export type CloudSyncEvent =
   | { type: 'new_order'; order: Order }
@@ -22,7 +21,7 @@ const listeners: Set<EventListener> = new Set();
 let localBroadcast: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-    localBroadcast = new BroadcastChannel('snd_raj_cabin_sync_channel');
+    localBroadcast = new BroadcastChannel('snd_raj_cabin_sync_channel_v2');
     localBroadcast.onmessage = (ev) => {
       if (ev.data) {
         listeners.forEach(fn => fn(ev.data));
@@ -33,10 +32,14 @@ try {
   // fallback
 }
 
-// Generate consistent topic name per restaurant
+// Generate consistent unified topic name per restaurant
 function getTopic(restaurantIdOrSlug: string = 'raj-cabin'): string {
-  const clean = (restaurantIdOrSlug || 'raj-cabin').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-  return `snd_res_sync_${clean}_v1`;
+  const str = (restaurantIdOrSlug || '').toLowerCase().trim();
+  if (!str || str === 'raj-cabin' || str === 'rest_raj_001' || str === 'raj_cabin' || str.includes('raj')) {
+    return 'snd_raj_cabin_orders_live_sync_v2';
+  }
+  const clean = str.replace(/[^a-zA-Z0-9]/g, '_');
+  return `snd_res_${clean}_live_v2`;
 }
 
 // Active EventSource connection
@@ -98,12 +101,12 @@ export const cloudSync = {
   },
 
   // Publish event to Cloud Relay so ALL devices receive it in < 0.1s
-  async publishEvent(restaurantId: string, event: CloudSyncEvent): Promise<void> {
+  async publishEvent(restaurantId: string, event: CloudSyncEvent): Promise<boolean> {
     this.broadcastLocal(event);
 
     const topic = getTopic(restaurantId);
     try {
-      await fetch(`https://ntfy.sh/${topic}`, {
+      const res = await fetch(`https://ntfy.sh/${topic}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,8 +114,10 @@ export const cloudSync = {
         },
         body: JSON.stringify(event)
       });
+      return res.ok;
     } catch (e) {
       console.debug('Cloud publish failed', e);
+      return false;
     }
   },
 

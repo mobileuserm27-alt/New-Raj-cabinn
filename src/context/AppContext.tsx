@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { api, playNotificationChime } from '../lib/api';
 import { cloudSync, CloudSyncEvent } from '../lib/cloudSync';
 import { localStore } from '../lib/localStore';
@@ -507,6 +507,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshData();
   }, [activeRestaurantSlug]);
 
+  // Track already-chimed orders and waiter requests to prevent repetitive chime loops
+  const chimedOrderIdsRef = useRef<Set<string>>(new Set());
+  const chimedWaiterIdsRef = useRef<Set<string>>(new Set());
+
+  // Helper to check if current view is an Admin/Kitchen/Staff view
+  const isAdminView = view === 'admin' || view === 'kitchen_display' || view === 'restaurant_admin' || view === 'super_admin';
+
   // Real-time Event Listener (SSE + CloudSync Relay + Cross-Tab Storage Event)
   useEffect(() => {
     if (!restaurant) return;
@@ -522,29 +529,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           if (prev.some(o => o.id === payload.id)) return prev;
           return [payload, ...prev];
         });
-        if (soundEnabled) {
-          playNotificationChime('order');
+
+        // ONLY play kitchen chime & toast on Admin/Kitchen/Staff screens
+        if (isAdminView && !chimedOrderIdsRef.current.has(payload.id)) {
+          chimedOrderIdsRef.current.add(payload.id);
+          if (soundEnabled) {
+            playNotificationChime('order');
+          }
+          showToast('🔔 New Live Order!', `${payload.orderNumber} from Table #${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
         }
-        showToast('🔔 New Live Order!', `${payload.orderNumber} from Table #${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
       } else if (event.type === 'order_status_updated') {
         const payload = event.order;
         setOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
         setCustomerOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
         setActiveOrderModal(prev => (prev?.id === payload.id ? payload : prev));
-        if (soundEnabled) {
-          playNotificationChime('success');
-        }
       } else if (event.type === 'new_waiter_request') {
         const payload = event.request;
         setWaiterRequests(prev => {
           if (prev.some(w => w.id === payload.id)) return prev;
           return [payload, ...prev];
         });
-        if (soundEnabled) {
-          playNotificationChime('waiter');
+
+        if (isAdminView && !chimedWaiterIdsRef.current.has(payload.id)) {
+          chimedWaiterIdsRef.current.add(payload.id);
+          if (soundEnabled) {
+            playNotificationChime('waiter');
+          }
+          const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
+          showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
         }
-        const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
-        showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
       } else if (event.type === 'order_deleted') {
         const orderId = event.orderId;
         setOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
@@ -617,10 +630,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
           if (merged.length > 0) {
             setOrders(prev => {
-              const prevIds = new Set(prev.map(p => p.id));
-              const hasNew = merged.some(m => !prevIds.has(m.id));
-              if (hasNew && soundEnabled) {
-                playNotificationChime('order');
+              if (isAdminView) {
+                const unchimed = merged.filter(m => !chimedOrderIdsRef.current.has(m.id));
+                if (unchimed.length > 0) {
+                  unchimed.forEach(u => chimedOrderIdsRef.current.add(u.id));
+                  if (soundEnabled) {
+                    playNotificationChime('order');
+                  }
+                  const latest = unchimed[0];
+                  showToast('🔔 New Live Order!', `${latest.orderNumber} from Table #${latest.tableNumber} (₹${latest.grandTotal})`, 'success');
+                }
               }
               return merged;
             });
@@ -636,7 +655,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const waiterMap = new Map<string, WaiterRequest>();
           freshWaiters.forEach(w => waiterMap.set(w.id, w));
           cloudWaiters.forEach(w => waiterMap.set(w.id, w));
-          setWaiterRequests(Array.from(waiterMap.values()));
+          const mergedWaiters = Array.from(waiterMap.values());
+          setWaiterRequests(mergedWaiters);
+
+          if (isAdminView) {
+            const unchimedWaiters = mergedWaiters.filter(w => !chimedWaiterIdsRef.current.has(w.id) && w.status === 'pending');
+            if (unchimedWaiters.length > 0) {
+              unchimedWaiters.forEach(w => chimedWaiterIdsRef.current.add(w.id));
+              if (soundEnabled) {
+                playNotificationChime('waiter');
+              }
+            }
+          }
         }
       } catch (e) {
         // silent
@@ -658,10 +688,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
           const payload = JSON.parse(event.data).payload as Order;
           setOrders(prev => [payload, ...prev.filter(o => o.id !== payload.id)]);
-          if (soundEnabled) {
-            playNotificationChime('order');
+          if (isAdminView && !chimedOrderIdsRef.current.has(payload.id)) {
+            chimedOrderIdsRef.current.add(payload.id);
+            if (soundEnabled) {
+              playNotificationChime('order');
+            }
+            showToast('🔔 New Order Received!', `${payload.orderNumber} from Table ${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
           }
-          showToast('🔔 New Order Received!', `${payload.orderNumber} from Table ${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
         } catch (e) {
           console.error(e);
         }
@@ -673,9 +706,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
           setCustomerOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
           setActiveOrderModal(prev => (prev?.id === payload.id ? payload : prev));
-          if (soundEnabled) {
-            playNotificationChime('success');
-          }
         } catch (e) {
           console.error(e);
         }
@@ -692,7 +722,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         eventSource.close();
       }
     };
-  }, [restaurant?.id, soundEnabled]);
+  }, [restaurant?.id, soundEnabled, view, isAdminView]);
 
   // Cart operations
   const addToCart = (
