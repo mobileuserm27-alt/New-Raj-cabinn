@@ -13,6 +13,7 @@ import {
   WaiterRequest
 } from '../types';
 import { localStore } from './localStore';
+import { cloudSync } from './cloudSync';
 
 export const API_BASE = '/api';
 
@@ -301,7 +302,10 @@ export const api = {
   async getOrders(restaurantId: string): Promise<Order[]> {
     return safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/orders`),
-      () => localStore.getOrders(restaurantId)
+      () => {
+        const local = localStore.getOrders(restaurantId);
+        return local;
+      }
     );
   },
 
@@ -331,7 +335,7 @@ export const api = {
     items: any[];
     specialNotes?: string;
   }): Promise<Order> {
-    return safeFetch(
+    const order = await safeFetch(
       () => fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -339,10 +343,14 @@ export const api = {
       }),
       () => localStore.createOrder(orderData)
     );
+
+    // Broadcast across all connected client devices & tabs in real-time
+    cloudSync.syncOrderToCloud(order);
+    return order;
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -354,6 +362,8 @@ export const api = {
         return o;
       }
     );
+    cloudSync.syncOrderStatusToCloud(updated);
+    return updated;
   },
 
   async updateOrderPayment(orderId: string, paymentStatus: PaymentStatus, paymentMethod?: string): Promise<Order> {

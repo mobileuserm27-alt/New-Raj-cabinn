@@ -32,7 +32,8 @@ export const OrdersManager: React.FC = () => {
     soundEnabled,
     setSoundEnabled,
     showToast,
-    refreshData
+    refreshData,
+    sendTestLiveOrder
   } = useApp();
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -126,6 +127,20 @@ export const OrdersManager: React.FC = () => {
 
         {/* Action icons & Clear History Button */}
         <div className="flex items-center flex-wrap gap-2">
+          {/* ⚡ Send Live Test Order Demo Button */}
+          <button
+            id="btn-demo-live-order"
+            type="button"
+            onClick={async () => {
+              await sendTestLiveOrder();
+            }}
+            className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer animate-pulse"
+            title="Send an instant live test order to demonstrate real-time receipt & kitchen chime"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>⚡ Test Live Order Demo</span>
+          </button>
+
           {/* Refresh data button */}
           <button
             id="btn-refresh-orders"

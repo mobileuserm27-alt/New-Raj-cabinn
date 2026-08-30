@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api, playNotificationChime } from '../lib/api';
+import { cloudSync, CloudSyncEvent } from '../lib/cloudSync';
+import { localStore } from '../lib/localStore';
 import { translations, Language } from '../lib/translations';
 import {
   AdminTab,
@@ -159,6 +161,7 @@ interface AppContextType {
 
   updateRestaurantBranding: (data: Partial<Restaurant>) => Promise<Restaurant>;
   updateRestaurantProfile: (data: Partial<Restaurant>) => Promise<Restaurant>;
+  sendTestLiveOrder: () => Promise<Order>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -478,16 +481,110 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshData();
   }, [activeRestaurantSlug]);
 
-  // Real-time Server Sent Events (SSE) listener
+  // Real-time Event Listener (SSE + CloudSync Relay + Cross-Tab Storage Event)
   useEffect(() => {
     if (!restaurant) return;
 
+    // 1. Listen to cross-device cloud sync and local BroadcastChannel
+    const unsubscribeCloud = cloudSync.subscribe((event: CloudSyncEvent) => {
+      if (event.type === 'new_order') {
+        const payload = event.order;
+        setOrders(prev => {
+          if (prev.some(o => o.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
+        if (soundEnabled) {
+          playNotificationChime('order');
+        }
+        showToast('🔔 New Live Order!', `${payload.orderNumber} from Table #${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
+      } else if (event.type === 'order_status_updated') {
+        const payload = event.order;
+        setOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
+        setCustomerOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
+        setActiveOrderModal(prev => (prev?.id === payload.id ? payload : prev));
+        if (soundEnabled) {
+          playNotificationChime('success');
+        }
+      } else if (event.type === 'new_waiter_request') {
+        const payload = event.request;
+        setWaiterRequests(prev => {
+          if (prev.some(w => w.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
+        if (soundEnabled) {
+          playNotificationChime('waiter');
+        }
+        const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
+        showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
+      }
+    });
+
+    // 2. Storage event listener for cross-tab sync on same device
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'snd_offline_orders' && e.newValue) {
+        try {
+          const fresh = JSON.parse(e.newValue);
+          setOrders(fresh);
+        } catch (err) {
+          // ignore
+        }
+      } else if (e.key === 'snd_offline_waiter_requests' && e.newValue) {
+        try {
+          const fresh = JSON.parse(e.newValue);
+          setWaiterRequests(fresh);
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // 3. High-Frequency 3-Second Smart Poller for guaranteed sync across all phones & laptops
+    const pollInterval = setInterval(async () => {
+      try {
+        const [freshOrders, freshWaiters, cloudOrders] = await Promise.all([
+          api.getOrders(restaurant.id).catch(() => []),
+          api.getWaiterRequests(restaurant.id).catch(() => []),
+          cloudSync.pullCloudOrders(restaurant.id).catch(() => [])
+        ]);
+
+        // Merge orders safely by ID
+        if (freshOrders.length > 0 || cloudOrders.length > 0) {
+          const orderMap = new Map<string, Order>();
+          // Cloud orders first
+          cloudOrders.forEach(o => orderMap.set(o.id, o));
+          // Fresh local / server orders
+          freshOrders.forEach(o => orderMap.set(o.id, o));
+
+          const merged = Array.from(orderMap.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          setOrders(prev => {
+            // Check if any brand new order arrived
+            const prevIds = new Set(prev.map(p => p.id));
+            const hasNew = merged.some(m => !prevIds.has(m.id));
+            if (hasNew && soundEnabled) {
+              playNotificationChime('order');
+            }
+            return merged;
+          });
+        }
+
+        if (freshWaiters.length > 0) {
+          setWaiterRequests(freshWaiters);
+        }
+      } catch (e) {
+        // silent
+      }
+    }, 3000);
+
+    // 4. Server-Sent Events (SSE) if running on custom server / Cloud Run
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource(`/api/events?restaurantId=${encodeURIComponent(restaurant.id)}`);
 
       eventSource.onerror = () => {
-        // Silently close on static host or disconnect to prevent retry loop
         if (eventSource && eventSource.readyState === EventSource.CLOSED) {
           eventSource.close();
         }
@@ -497,7 +594,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
           const payload = JSON.parse(event.data).payload as Order;
           setOrders(prev => [payload, ...prev.filter(o => o.id !== payload.id)]);
-
           if (soundEnabled) {
             playNotificationChime('order');
           }
@@ -512,88 +608,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const payload = JSON.parse(event.data).payload as Order;
           setOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
           setCustomerOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
-
-          // If customer is tracking this order, update modal
           setActiveOrderModal(prev => (prev?.id === payload.id ? payload : prev));
-
           if (soundEnabled) {
             playNotificationChime('success');
-          }
-          showToast(`Order Status: ${payload.status.toUpperCase()}`, `Order ${payload.orderNumber} is now ${payload.status}`, 'info');
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('new_waiter_request', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as WaiterRequest;
-          setWaiterRequests(prev => [payload, ...prev.filter(w => w.id !== payload.id)]);
-
-          if (soundEnabled) {
-            playNotificationChime('waiter');
-          }
-          const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
-          showToast(`🛎️ Table ${payload.tableNumber}: ${label}`, payload.note || 'Guest is waiting at table', 'warn');
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('waiter_request_updated', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as WaiterRequest;
-          setWaiterRequests(prev => prev.map(w => (w.id === payload.id ? payload : w)));
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('menu_updated', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as MenuItem[];
-          const unique = Array.from(new Map((payload || []).map(m => [m.id, m])).values());
-          setMenuItems(unique);
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('categories_updated', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as Category[];
-          const unique = Array.from(new Map((payload || []).map(c => [c.id, c])).values());
-          setCategories(unique);
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('tables_updated', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as TableInfo[];
-          const unique = Array.from(new Map((payload || []).map(t => [t.id, t])).values());
-          setTables(unique);
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      eventSource.addEventListener('restaurant_updated', (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data).payload as Restaurant;
-          if (payload.id === restaurant.id) {
-            setRestaurant(payload);
           }
         } catch (e) {
           console.error(e);
         }
       });
     } catch (err) {
-      console.debug('SSE initialization skipped in static mode', err);
+      // SSE not available
     }
 
     return () => {
+      unsubscribeCloud();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
       if (eventSource) {
         eventSource.close();
       }
@@ -860,6 +890,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return updated;
   };
 
+  const sendTestLiveOrder = async (): Promise<Order> => {
+    if (!restaurant) throw new Error('No active restaurant');
+    const tableNum = (Math.floor(Math.random() * 8) + 1).toString();
+    const sampleDishes = menuItems.length > 0
+      ? menuItems.slice(0, 2)
+      : [
+          {
+            id: 'item-demo-1',
+            restaurantId: restaurant.id,
+            name: 'Special Chicken Dum Biryani',
+            hindiName: 'स्पेशल चिकन दम बिरयानी',
+            price: 240,
+            dietType: 'non-veg',
+            isAvailable: true
+          },
+          {
+            id: 'item-demo-2',
+            restaurantId: restaurant.id,
+            name: 'Butter Garlic Naan',
+            hindiName: 'बटर गार्लिक नान',
+            price: 60,
+            dietType: 'veg',
+            isAvailable: true
+          }
+        ];
+
+    const orderItems = sampleDishes.map(d => ({
+      id: `oi-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      menuItemId: d.id,
+      name: d.name,
+      hindiName: d.hindiName,
+      unitPrice: d.price,
+      quantity: 1,
+      totalPrice: d.price,
+      dietType: d.dietType || 'non-veg'
+    }));
+
+    const newOrder = await api.placeOrder({
+      restaurantId: restaurant.id,
+      tableNumber: tableNum,
+      customerName: 'Live Demo Guest',
+      customerPhone: '9876543210',
+      items: orderItems,
+      specialNotes: '⚡ Live Test Order (Spicy & Fresh)'
+    });
+
+    setOrders(prev => [newOrder, ...prev.filter(o => o.id !== newOrder.id)]);
+    playNotificationChime('order');
+    showToast('⚡ Live Test Order Placed!', `${newOrder.orderNumber} placed for Table #${newOrder.tableNumber} (₹${newOrder.grandTotal})`, 'success');
+    return newOrder;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -960,7 +1042,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateStaffMember,
         deleteStaffMember,
         updateRestaurantBranding,
-        updateRestaurantProfile: updateRestaurantBranding
+        updateRestaurantProfile: updateRestaurantBranding,
+        sendTestLiveOrder
       }}
     >
       {children}
