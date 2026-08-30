@@ -445,20 +445,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (currentRest) {
         setRestaurant(currentRest);
-        const [cats, items, tbls, ords, wReqs, staff] = await Promise.all([
+        const [cats, items, tbls, ords, wReqs, staff, cloudRes, cloudWaiters] = await Promise.all([
           api.getCategories(currentRest.id),
           api.getMenuItems(currentRest.id),
           api.getTables(currentRest.id),
           api.getOrders(currentRest.id),
           api.getWaiterRequests(currentRest.id),
-          api.getStaff(currentRest.id)
+          api.getStaff(currentRest.id),
+          cloudSync.pullCloudOrders(currentRest.id).catch(() => ({ orders: [] as Order[], deletedIds: new Set<string>(), cleared: false })),
+          cloudSync.pullCloudWaiterRequests(currentRest.id).catch(() => [] as WaiterRequest[])
         ]);
+
+        // Merge orders from local/server + cloud
+        const orderMap = new Map<string, Order>();
+        if (!cloudRes.cleared) {
+          ords.forEach(o => {
+            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
+              orderMap.set(o.id, o);
+            }
+          });
+          cloudRes.orders.forEach(o => {
+            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
+              orderMap.set(o.id, o);
+            }
+          });
+        }
+        const mergedOrders = Array.from(orderMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
 
         setCategories(cats);
         setMenuItems(items);
         setTables(tbls);
-        setOrders(ords);
-        setWaiterRequests(wReqs);
+        setOrders(mergedOrders);
+
+        // Merge waiter requests
+        const waiterMap = new Map<string, WaiterRequest>();
+        wReqs.forEach(w => waiterMap.set(w.id, w));
+        cloudWaiters.forEach(w => waiterMap.set(w.id, w));
+        setWaiterRequests(Array.from(waiterMap.values()));
+
         setStaffList(staff);
         if (staff.length > 0) {
           setCurrentStaff(staff[0]);
@@ -484,6 +510,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Real-time Event Listener (SSE + CloudSync Relay + Cross-Tab Storage Event)
   useEffect(() => {
     if (!restaurant) return;
+
+    // Start real-time SSE listener from cloud relay
+    cloudSync.startRealtimeListener(restaurant.id);
 
     // 1. Listen to cross-device cloud sync and local BroadcastChannel
     const unsubscribeCloud = cloudSync.subscribe((event: CloudSyncEvent) => {
@@ -555,58 +584,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // 3. High-Frequency 3-Second Smart Poller for guaranteed sync across all phones & laptops
+    // 3. High-Frequency 2-Second Smart Poller for guaranteed sync across all phones & laptops
     const pollInterval = setInterval(async () => {
       try {
-        const [freshOrders, freshWaiters, cloudOrders] = await Promise.all([
+        const [freshOrders, freshWaiters, cloudRes, cloudWaiters] = await Promise.all([
           api.getOrders(restaurant.id).catch(() => []),
           api.getWaiterRequests(restaurant.id).catch(() => []),
-          cloudSync.pullCloudOrders(restaurant.id).catch(() => [])
+          cloudSync.pullCloudOrders(restaurant.id).catch(() => ({ orders: [] as Order[], deletedIds: new Set<string>(), cleared: false })),
+          cloudSync.pullCloudWaiterRequests(restaurant.id).catch(() => [] as WaiterRequest[])
         ]);
 
-        // Merge orders safely by ID
-        if (freshOrders.length > 0 || cloudOrders.length > 0) {
+        if (cloudRes.cleared) {
+          setOrders([]);
+          setCustomerOrders([]);
+          setActiveOrderModal(null);
+        } else {
           const orderMap = new Map<string, Order>();
-          // Cloud orders first
-          cloudOrders.forEach(o => orderMap.set(o.id, o));
-          // Fresh local / server orders
-          freshOrders.forEach(o => orderMap.set(o.id, o));
+          freshOrders.forEach(o => {
+            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
+              orderMap.set(o.id, o);
+            }
+          });
+          cloudRes.orders.forEach(o => {
+            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
+              orderMap.set(o.id, o);
+            }
+          });
 
           const merged = Array.from(orderMap.values()).sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
 
-          setOrders(prev => {
-            // Check if any brand new order arrived
-            const prevIds = new Set(prev.map(p => p.id));
-            const hasNew = merged.some(m => !prevIds.has(m.id));
-            if (hasNew && soundEnabled) {
-              playNotificationChime('order');
-            }
-            return merged;
-          });
+          if (merged.length > 0) {
+            setOrders(prev => {
+              const prevIds = new Set(prev.map(p => p.id));
+              const hasNew = merged.some(m => !prevIds.has(m.id));
+              if (hasNew && soundEnabled) {
+                playNotificationChime('order');
+              }
+              return merged;
+            });
 
-          // Also reconcile customer orders so deleted orders are pruned
-          const activeIds = new Set([...merged.map(m => m.id), ...merged.map(m => m.orderNumber)]);
-          setCustomerOrders(prev => {
-            const valid = prev.filter(co => activeIds.has(co.id) || activeIds.has(co.orderNumber));
-            return valid;
-          });
-          setActiveOrderModal(prev => (prev && !activeIds.has(prev.id) && !activeIds.has(prev.orderNumber) ? null : prev));
-        } else {
-          // If no orders exist on server or cloud
-          setOrders([]);
-          setCustomerOrders([]);
-          setActiveOrderModal(null);
+            // Also reconcile customer orders so deleted orders are pruned
+            const activeIds = new Set([...merged.map(m => m.id), ...merged.map(m => m.orderNumber)]);
+            setCustomerOrders(prev => prev.filter(co => activeIds.has(co.id) || activeIds.has(co.orderNumber)));
+            setActiveOrderModal(prev => (prev && !activeIds.has(prev.id) && !activeIds.has(prev.orderNumber) ? null : prev));
+          }
         }
 
-        if (freshWaiters.length > 0) {
-          setWaiterRequests(freshWaiters);
+        if (cloudWaiters.length > 0 || freshWaiters.length > 0) {
+          const waiterMap = new Map<string, WaiterRequest>();
+          freshWaiters.forEach(w => waiterMap.set(w.id, w));
+          cloudWaiters.forEach(w => waiterMap.set(w.id, w));
+          setWaiterRequests(Array.from(waiterMap.values()));
         }
       } catch (e) {
         // silent
       }
-    }, 3000);
+    }, 2000);
 
     // 4. Server-Sent Events (SSE) if running on custom server / Cloud Run
     let eventSource: EventSource | null = null;
@@ -753,6 +788,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const newOrder = await api.placeOrder(orderPayload);
     setCustomerOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => [newOrder, ...prev.filter(o => o.id !== newOrder.id)]);
     setActiveOrderModal(newOrder);
     clearCart();
     setIsCartOpen(false);
@@ -782,7 +818,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteOrder = async (orderId: string) => {
-    const success = await api.deleteOrder(orderId);
+    const success = await api.deleteOrder(orderId, restaurant?.id);
     if (success) {
       setOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
       setCustomerOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));

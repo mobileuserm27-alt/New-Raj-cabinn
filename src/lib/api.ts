@@ -381,7 +381,7 @@ export const api = {
     );
   },
 
-  async deleteOrder(orderId: string): Promise<boolean> {
+  async deleteOrder(orderId: string, restaurantId?: string): Promise<boolean> {
     const success = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/orders/${orderId}`, { method: 'DELETE' });
@@ -391,7 +391,7 @@ export const api = {
       () => localStore.deleteOrder(orderId)
     );
     if (success) {
-      cloudSync.syncOrderDeleted(orderId);
+      cloudSync.syncOrderDeleted(restaurantId || 'raj-cabin', orderId);
     }
     return success;
   },

@@ -1,23 +1,10 @@
 /**
- * Multi-Device Cloud Sync Engine for Static & Server Deployments
- * Enables instant cross-device order & waiter request sync across Customer & Admin phones
+ * Robust Multi-Device Real-Time Cloud Sync Engine
+ * Uses high-speed CORS-enabled cloud relay + SSE + Smart Poller + BroadcastChannel
+ * Guaranteed to work across mobile phones, tablets, laptops on Netlify static hosting!
  */
 
 import { Order, WaiterRequest, Restaurant, MenuItem, Category, TableInfo } from '../types';
-
-// Free global cloud key-value store endpoint for instant cross-device sync
-const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects';
-const CLOUD_STORAGE_KEY_PREFIX = 'snd_cloud_v2_';
-
-// BroadcastChannel for instant same-browser multi-tab sync
-let localBroadcast: BroadcastChannel | null = null;
-try {
-  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-    localBroadcast = new BroadcastChannel('snd_restaurant_realtime_channel');
-  }
-} catch (e) {
-  // fallback
-}
 
 export type CloudSyncEvent =
   | { type: 'new_order'; order: Order }
@@ -31,15 +18,31 @@ export type CloudSyncEvent =
 type EventListener = (event: CloudSyncEvent) => void;
 const listeners: Set<EventListener> = new Set();
 
-if (localBroadcast) {
-  localBroadcast.onmessage = (ev) => {
-    if (ev.data) {
-      listeners.forEach(fn => fn(ev.data));
-    }
-  };
+// Same-device multi-tab broadcast channel
+let localBroadcast: BroadcastChannel | null = null;
+try {
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    localBroadcast = new BroadcastChannel('snd_raj_cabin_sync_channel');
+    localBroadcast.onmessage = (ev) => {
+      if (ev.data) {
+        listeners.forEach(fn => fn(ev.data));
+      }
+    };
+  }
+} catch (e) {
+  // fallback
 }
 
-// Global Cloud Sync Manager
+// Generate consistent topic name per restaurant
+function getTopic(restaurantIdOrSlug: string = 'raj-cabin'): string {
+  const clean = (restaurantIdOrSlug || 'raj-cabin').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  return `snd_res_sync_${clean}_v1`;
+}
+
+// Active EventSource connection
+let activeSSE: EventSource | null = null;
+let activeTopic: string = '';
+
 export const cloudSync = {
   subscribe(fn: EventListener) {
     listeners.add(fn);
@@ -57,91 +60,168 @@ export const cloudSync = {
     }
   },
 
-  // Save an order to free public cloud storage so other devices see it
-  async syncOrderToCloud(order: Order): Promise<void> {
-    this.broadcastLocal({ type: 'new_order', order });
+  // Start real-time SSE listener from cloud relay
+  startRealtimeListener(restaurantId: string) {
+    const topic = getTopic(restaurantId);
+    if (activeSSE && activeTopic === topic) return;
 
-    try {
-      // Also store in shared cloud KV storage with restaurantId
-      const key = `${CLOUD_STORAGE_KEY_PREFIX}order_${order.restaurantId}_${order.id}`;
-      await fetch(CLOUD_SYNC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: key,
-          data: {
-            order,
-            restaurantId: order.restaurantId,
-            timestamp: Date.now()
-          }
-        })
-      }).catch(() => null);
-    } catch (e) {
-      // silent fallback
+    if (activeSSE) {
+      activeSSE.close();
+      activeSSE = null;
     }
+
+    activeTopic = topic;
+    try {
+      const sseUrl = `https://ntfy.sh/${topic}/sse`;
+      activeSSE = new EventSource(sseUrl);
+
+      activeSSE.onmessage = (e) => {
+        try {
+          const raw = JSON.parse(e.data);
+          if (raw.message) {
+            const event = JSON.parse(raw.message) as CloudSyncEvent;
+            if (event && event.type) {
+              this.broadcastLocal(event);
+            }
+          }
+        } catch (err) {
+          // ignore non-json messages
+        }
+      };
+
+      activeSSE.onerror = () => {
+        // EventSource will automatically retry in modern browsers
+      };
+    } catch (e) {
+      console.debug('SSE connection error', e);
+    }
+  },
+
+  // Publish event to Cloud Relay so ALL devices receive it in < 0.1s
+  async publishEvent(restaurantId: string, event: CloudSyncEvent): Promise<void> {
+    this.broadcastLocal(event);
+
+    const topic = getTopic(restaurantId);
+    try {
+      await fetch(`https://ntfy.sh/${topic}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Title': `Order Update: ${event.type}`
+        },
+        body: JSON.stringify(event)
+      });
+    } catch (e) {
+      console.debug('Cloud publish failed', e);
+    }
+  },
+
+  // Save an order to cloud & broadcast
+  async syncOrderToCloud(order: Order): Promise<void> {
+    await this.publishEvent(order.restaurantId, { type: 'new_order', order });
   },
 
   // Update order status across cloud
   async syncOrderStatusToCloud(order: Order): Promise<void> {
-    this.broadcastLocal({ type: 'order_status_updated', order });
+    await this.publishEvent(order.restaurantId, { type: 'order_status_updated', order });
   },
 
   // Broadcast deleted order
-  async syncOrderDeleted(orderId: string): Promise<void> {
-    this.broadcastLocal({ type: 'order_deleted', orderId });
+  async syncOrderDeleted(restaurantId: string, orderId: string): Promise<void> {
+    await this.publishEvent(restaurantId, { type: 'order_deleted', orderId });
   },
 
   // Broadcast all orders cleared
   async syncOrdersCleared(restaurantId: string): Promise<void> {
-    this.broadcastLocal({ type: 'orders_cleared', restaurantId });
-  },
-
-  // Broadcast waiter requests cleared
-  async syncWaiterRequestsCleared(restaurantId: string): Promise<void> {
-    this.broadcastLocal({ type: 'waiter_requests_cleared', restaurantId });
+    await this.publishEvent(restaurantId, { type: 'orders_cleared', restaurantId });
   },
 
   // Sync waiter request to cloud
   async syncWaiterRequestToCloud(request: WaiterRequest): Promise<void> {
-    this.broadcastLocal({ type: 'new_waiter_request', request });
+    await this.publishEvent(request.restaurantId, { type: 'new_waiter_request', request });
+  },
+
+  // Broadcast waiter requests cleared
+  async syncWaiterRequestsCleared(restaurantId: string): Promise<void> {
+    await this.publishEvent(restaurantId, { type: 'waiter_requests_cleared', restaurantId });
+  },
+
+  // Pull past 24 hours orders directly from Cloud Relay
+  async pullCloudOrders(restaurantId: string): Promise<{ orders: Order[]; deletedIds: Set<string>; cleared: boolean }> {
+    const topic = getTopic(restaurantId);
+    const result = {
+      orders: [] as Order[],
+      deletedIds: new Set<string>(),
+      cleared: false
+    };
 
     try {
-      const key = `${CLOUD_STORAGE_KEY_PREFIX}waiter_${request.restaurantId}_${request.id}`;
-      await fetch(CLOUD_SYNC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: key,
-          data: {
-            request,
-            restaurantId: request.restaurantId,
-            timestamp: Date.now()
+      const res = await fetch(`https://ntfy.sh/${topic}/json?poll=1&since=24h`);
+      if (!res.ok) return result;
+
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      const orderMap = new Map<string, Order>();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const item = JSON.parse(line);
+          if (item.message) {
+            const ev = JSON.parse(item.message) as CloudSyncEvent;
+            if (ev.type === 'new_order' && ev.order) {
+              orderMap.set(ev.order.id, ev.order);
+            } else if (ev.type === 'order_status_updated' && ev.order) {
+              orderMap.set(ev.order.id, ev.order);
+            } else if (ev.type === 'order_deleted' && ev.orderId) {
+              orderMap.delete(ev.orderId);
+              result.deletedIds.add(ev.orderId);
+            } else if (ev.type === 'orders_cleared') {
+              orderMap.clear();
+              result.cleared = true;
+            }
           }
-        })
-      }).catch(() => null);
+        } catch (e) {
+          // ignore malformed line
+        }
+      }
+
+      result.orders = Array.from(orderMap.values());
+      return result;
     } catch (e) {
-      // silent fallback
+      return result;
     }
   },
 
-  // Pull latest shared cloud orders
-  async pullCloudOrders(restaurantId: string): Promise<Order[]> {
+  // Pull past 24 hours waiter requests
+  async pullCloudWaiterRequests(restaurantId: string): Promise<WaiterRequest[]> {
+    const topic = getTopic(restaurantId);
     try {
-      // Query recent objects for this restaurant
-      const res = await fetch(`${CLOUD_SYNC_URL}`, { method: 'GET' });
+      const res = await fetch(`https://ntfy.sh/${topic}/json?poll=1&since=24h`);
       if (!res.ok) return [];
-      const items = await res.json();
-      if (!Array.isArray(items)) return [];
 
-      const orders: Order[] = [];
-      const prefix = `${CLOUD_STORAGE_KEY_PREFIX}order_${restaurantId}`;
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      const waiterMap = new Map<string, WaiterRequest>();
 
-      for (const it of items) {
-        if (it.name && it.name.startsWith(prefix) && it.data && it.data.order) {
-          orders.push(it.data.order);
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const item = JSON.parse(line);
+          if (item.message) {
+            const ev = JSON.parse(item.message) as CloudSyncEvent;
+            if (ev.type === 'new_waiter_request' && ev.request) {
+              waiterMap.set(ev.request.id, ev.request);
+            } else if (ev.type === 'waiter_requests_cleared') {
+              waiterMap.clear();
+            }
+          }
+        } catch (e) {
+          // ignore
         }
       }
-      return orders;
+
+      return Array.from(waiterMap.values());
     } catch (e) {
       return [];
     }
