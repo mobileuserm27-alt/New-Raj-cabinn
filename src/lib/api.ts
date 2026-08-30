@@ -367,7 +367,7 @@ export const api = {
     );
 
     // Broadcast across all connected client devices & tabs in real-time
-    cloudSync.syncOrderToCloud(order);
+    await cloudSync.syncOrderToCloud(order);
     return order;
   },
 
@@ -384,7 +384,7 @@ export const api = {
         return o;
       }
     );
-    cloudSync.syncOrderStatusToCloud(updated);
+    await cloudSync.syncOrderStatusToCloud(updated);
     return updated;
   },
 

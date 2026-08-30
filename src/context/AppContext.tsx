@@ -607,7 +607,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // 3. High-Frequency 2-Second Smart Poller for guaranteed sync across all phones & laptops
+    // 3. Fast 1.5-Second Smart Poller for guaranteed sync across all phones & laptops
     const pollInterval = setInterval(async () => {
       try {
         const [freshOrders, freshWaiters, cloudRes, cloudWaiters] = await Promise.all([
@@ -681,7 +681,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (e) {
         // silent
       }
-    }, 2000);
+    }, 1500);
+
+    // 4. Instant sync on mobile phone wake / tab switch
+    const handleWake = () => {
+      if (document.visibilityState === 'visible') {
+        refreshData();
+      }
+    };
+    window.addEventListener('visibilitychange', handleWake);
+    window.addEventListener('focus', handleWake);
 
     // 4. Server-Sent Events (SSE) if running on custom server / Cloud Run
     let eventSource: EventSource | null = null;
@@ -727,6 +736,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => {
       unsubscribeCloud();
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('visibilitychange', handleWake);
+      window.removeEventListener('focus', handleWake);
       clearInterval(pollInterval);
       if (eventSource) {
         eventSource.close();

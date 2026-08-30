@@ -105,20 +105,24 @@ export const cloudSync = {
     this.broadcastLocal(event);
 
     const topic = getTopic(restaurantId);
-    try {
-      const res = await fetch(`https://ntfy.sh/${topic}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Title': `Order Update: ${event.type}`
-        },
-        body: JSON.stringify(event)
-      });
-      return res.ok;
-    } catch (e) {
-      console.debug('Cloud publish failed', e);
-      return false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(`https://ntfy.sh/${topic}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(event)
+        });
+        if (res.ok) return true;
+      } catch (e) {
+        console.debug(`Cloud publish attempt ${attempt} failed`, e);
+      }
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 200 * attempt));
+      }
     }
+    return false;
   },
 
   // Save an order to cloud & broadcast
