@@ -29,6 +29,7 @@ import { BillRequestModal } from './BillRequestModal';
 import { ChangeTableModal } from './ChangeTableModal';
 import { QuickWaterBottleModal } from './QuickWaterBottleModal';
 import { VegBadge } from './VegBadge';
+import { APP_IMAGES } from '../../assets/images';
 
 export const CustomerMenu: React.FC = () => {
   const {
@@ -296,7 +297,7 @@ export const CustomerMenu: React.FC = () => {
             title="Click to view full photo"
           >
             <img
-              src={restaurant?.branding.coverImageUrl}
+              src={restaurant?.branding.coverImageUrl || APP_IMAGES.rajCabinBuilding}
               alt={restaurant?.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               referrerPolicy="no-referrer"
@@ -654,7 +655,7 @@ export const CustomerMenu: React.FC = () => {
             </button>
             <div className="rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 flex flex-col max-h-[80vh]">
               <img
-                src="/images/raj-cabin-exterior.jpg"
+                src={APP_IMAGES.rajCabinBuilding}
                 alt="New Raj Cabin Grand Restaurant Building"
                 className="w-full h-full object-contain max-h-[70vh] select-none"
                 referrerPolicy="no-referrer"

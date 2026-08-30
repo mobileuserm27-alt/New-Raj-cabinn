@@ -180,12 +180,21 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({ order, onClo
         </div>
 
         {/* Quick action footer */}
-        <div className="p-4 bg-stone-50 border-t border-stone-200 flex items-center gap-2">
+        <div className="p-4 bg-stone-50 border-t border-stone-200 flex items-center gap-2.5">
+          <button
+            id="btn-status-close-menu"
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 px-3 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.99] cursor-pointer"
+          >
+            <span>✕ {t.close} & Order More</span>
+          </button>
+
           <button
             id="btn-status-request-bill"
             type="button"
             onClick={() => setIsBillRequestOpen(true)}
-            className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer"
+            className="flex-1 py-3 px-3 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer"
           >
             <Receipt className="w-4 h-4 text-emerald-400" />
             <span>{t.requestBill}</span>

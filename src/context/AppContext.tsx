@@ -516,6 +516,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
         const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
         showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
+      } else if (event.type === 'order_deleted') {
+        const orderId = event.orderId;
+        setOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
+        setCustomerOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
+        setActiveOrderModal(prev => (prev?.id === orderId || prev?.orderNumber === orderId ? null : prev));
+      } else if (event.type === 'orders_cleared') {
+        setOrders([]);
+        setCustomerOrders([]);
+        setActiveOrderModal(null);
+        try {
+          localStorage.removeItem('snd_customer_orders');
+        } catch (e) {
+          // ignore
+        }
+      } else if (event.type === 'waiter_requests_cleared') {
+        setWaiterRequests([]);
       }
     });
 
@@ -569,6 +585,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
             return merged;
           });
+
+          // Also reconcile customer orders so deleted orders are pruned
+          const activeIds = new Set([...merged.map(m => m.id), ...merged.map(m => m.orderNumber)]);
+          setCustomerOrders(prev => {
+            const valid = prev.filter(co => activeIds.has(co.id) || activeIds.has(co.orderNumber));
+            return valid;
+          });
+          setActiveOrderModal(prev => (prev && !activeIds.has(prev.id) && !activeIds.has(prev.orderNumber) ? null : prev));
+        } else {
+          // If no orders exist on server or cloud
+          setOrders([]);
+          setCustomerOrders([]);
+          setActiveOrderModal(null);
         }
 
         if (freshWaiters.length > 0) {
@@ -756,6 +785,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const success = await api.deleteOrder(orderId);
     if (success) {
       setOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
+      setCustomerOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
+      setActiveOrderModal(prev => (prev?.id === orderId || prev?.orderNumber === orderId ? null : prev));
       if (restaurant) {
         const freshTables = await api.getTables(restaurant.id);
         setTables(freshTables);
@@ -769,6 +800,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const success = await api.clearAllOrders(restaurant.id);
     if (success) {
       setOrders([]);
+      setCustomerOrders([]);
+      setActiveOrderModal(null);
+      try {
+        localStorage.removeItem('snd_customer_orders');
+      } catch (e) {
+        // ignore
+      }
       const freshTables = await api.getTables(restaurant.id);
       setTables(freshTables);
     }

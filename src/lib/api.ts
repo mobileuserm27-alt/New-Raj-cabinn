@@ -382,7 +382,7 @@ export const api = {
   },
 
   async deleteOrder(orderId: string): Promise<boolean> {
-    return safeFetch(
+    const success = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/orders/${orderId}`, { method: 'DELETE' });
         const data = await res.json();
@@ -390,10 +390,14 @@ export const api = {
       },
       () => localStore.deleteOrder(orderId)
     );
+    if (success) {
+      cloudSync.syncOrderDeleted(orderId);
+    }
+    return success;
   },
 
   async clearAllOrders(restaurantId: string): Promise<boolean> {
-    return safeFetch(
+    const success = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/restaurants/${restaurantId}/orders`, { method: 'DELETE' });
         const data = await res.json();
@@ -401,6 +405,10 @@ export const api = {
       },
       () => localStore.clearAllOrders(restaurantId)
     );
+    if (success) {
+      cloudSync.syncOrdersCleared(restaurantId);
+    }
+    return success;
   },
 
   // Waiter Requests
@@ -412,7 +420,7 @@ export const api = {
   },
 
   async clearAllWaiterRequests(restaurantId: string): Promise<boolean> {
-    return safeFetch(
+    const success = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/restaurants/${restaurantId}/waiter-requests`, { method: 'DELETE' });
         const data = await res.json();
@@ -420,6 +428,10 @@ export const api = {
       },
       () => localStore.clearAllWaiterRequests(restaurantId)
     );
+    if (success) {
+      cloudSync.syncWaiterRequestsCleared(restaurantId);
+    }
+    return success;
   },
 
   async submitWaiterRequest(restaurantId: string, tableNumber: string, requestType: string, note?: string): Promise<WaiterRequest> {

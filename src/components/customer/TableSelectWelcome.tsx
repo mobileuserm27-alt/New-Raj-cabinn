@@ -13,6 +13,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { APP_IMAGES } from '../../assets/images';
 import { VegBadge } from './VegBadge';
 import { TableInfo } from '../../types';
 
@@ -158,7 +159,7 @@ export const TableSelectWelcome: React.FC = () => {
         <div className="mb-3.5 rounded-3xl overflow-hidden border border-stone-800/80 bg-stone-900/80 shadow-2xl relative group">
           <div className="h-44 sm:h-52 w-full relative bg-stone-900 overflow-hidden cursor-pointer" onClick={() => setIsPhotoExpanded(true)}>
             <img
-              src="/images/raj-cabin-exterior.jpg"
+              src={restaurant?.branding.coverImageUrl || APP_IMAGES.rajCabinBuilding}
               alt="New Raj Cabin Grand Restaurant Building"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               referrerPolicy="no-referrer"
@@ -365,7 +366,7 @@ export const TableSelectWelcome: React.FC = () => {
             </button>
             <div className="rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 flex flex-col max-h-[80vh]">
               <img
-                src="/images/raj-cabin-exterior.jpg"
+                src={APP_IMAGES.rajCabinBuilding}
                 alt="New Raj Cabin Grand Restaurant Building"
                 className="w-full h-full object-contain max-h-[70vh] select-none"
                 referrerPolicy="no-referrer"

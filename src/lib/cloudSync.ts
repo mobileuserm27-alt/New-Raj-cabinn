@@ -86,6 +86,21 @@ export const cloudSync = {
     this.broadcastLocal({ type: 'order_status_updated', order });
   },
 
+  // Broadcast deleted order
+  async syncOrderDeleted(orderId: string): Promise<void> {
+    this.broadcastLocal({ type: 'order_deleted', orderId });
+  },
+
+  // Broadcast all orders cleared
+  async syncOrdersCleared(restaurantId: string): Promise<void> {
+    this.broadcastLocal({ type: 'orders_cleared', restaurantId });
+  },
+
+  // Broadcast waiter requests cleared
+  async syncWaiterRequestsCleared(restaurantId: string): Promise<void> {
+    this.broadcastLocal({ type: 'waiter_requests_cleared', restaurantId });
+  },
+
   // Sync waiter request to cloud
   async syncWaiterRequestToCloud(request: WaiterRequest): Promise<void> {
     this.broadcastLocal({ type: 'new_waiter_request', request });
