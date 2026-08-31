@@ -14,11 +14,13 @@ import {
   Receipt,
   Trash2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Calendar
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
 import { VegBadge } from '../customer/VegBadge';
+import { EndOfDayReportModal } from './EndOfDayReportModal';
 
 export const OrdersManager: React.FC = () => {
   const {
@@ -42,6 +44,7 @@ export const OrdersManager: React.FC = () => {
   const [showClearAllModal, setShowClearAllModal] = useState<boolean>(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showZReportModal, setShowZReportModal] = useState<boolean>(false);
 
   const currency = restaurant?.branding.currencySymbol || '₹';
 
@@ -156,6 +159,18 @@ export const OrdersManager: React.FC = () => {
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
+          {/* End-of-Day Z-Report button */}
+          <button
+            id="btn-orders-z-report"
+            type="button"
+            onClick={() => setShowZReportModal(true)}
+            className="px-3 py-2 rounded-xl text-xs font-bold border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700 transition flex items-center gap-1.5 cursor-pointer"
+            title="Open Daily Sales Z-Report"
+          >
+            <Calendar className="w-4 h-4 text-rose-500" />
+            <span className="hidden sm:inline">Z-Report</span>
+          </button>
+
           {/* Audio chime toggle */}
           <button
             id="btn-toggle-sound"
@@ -267,6 +282,13 @@ export const OrdersManager: React.FC = () => {
                     <span className="px-2.5 py-1 rounded-xl bg-stone-900 text-white font-extrabold text-xs">
                       Table #{order.tableNumber}
                     </span>
+                    {order.orderType && order.orderType !== 'dine_in' && (
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
+                        order.orderType === 'takeaway' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900 border border-blue-300'
+                      }`}>
+                        {order.orderType === 'takeaway' ? '📦 Takeaway' : '🛵 Delivery'}
+                      </span>
+                    )}
                     <span className="font-mono font-bold text-xs text-stone-600">
                       {order.orderNumber}
                     </span>
@@ -576,6 +598,12 @@ export const OrdersManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* End of Day Z-Report Modal */}
+      <EndOfDayReportModal
+        isOpen={showZReportModal}
+        onClose={() => setShowZReportModal(false)}
+      />
     </div>
   );
 };

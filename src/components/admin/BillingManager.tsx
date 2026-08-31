@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Receipt, CreditCard, Banknote, QrCode, CheckCircle2, Printer, Search, ArrowRight, DollarSign } from 'lucide-react';
+import { Receipt, CreditCard, Banknote, QrCode, CheckCircle2, Printer, Search, ArrowRight, DollarSign, Calendar } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
+import { EndOfDayReportModal } from './EndOfDayReportModal';
 
 export const BillingManager: React.FC = () => {
   const { orders, updateOrderPayment, restaurant, showToast } = useApp();
@@ -9,6 +10,7 @@ export const BillingManager: React.FC = () => {
   const [filter, setFilter] = useState<'pending' | 'paid' | 'all'>('pending');
   const [search, setSearch] = useState('');
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
+  const [showZReportModal, setShowZReportModal] = useState<boolean>(false);
 
   const currency = restaurant?.branding.currencySymbol || '₹';
 
@@ -54,38 +56,50 @@ export const BillingManager: React.FC = () => {
           </p>
         </div>
 
-        {/* Filter */}
-        <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-2xl">
+        {/* Actions & Filter */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            id="billing-filter-pending"
+            id="btn-billing-z-report"
             type="button"
-            onClick={() => setFilter('pending')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              filter === 'pending' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
-            }`}
+            onClick={() => setShowZReportModal(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
           >
-            Pending ({nonCancelledOrders.filter(o => o.paymentStatus !== 'paid').length})
+            <Calendar className="w-3.5 h-3.5 text-rose-400" />
+            <span>End-of-Day Z-Report</span>
           </button>
-          <button
-            id="billing-filter-paid"
-            type="button"
-            onClick={() => setFilter('paid')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              filter === 'paid' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
-            }`}
-          >
-            Settled ({nonCancelledOrders.filter(o => o.paymentStatus === 'paid').length})
-          </button>
-          <button
-            id="billing-filter-all"
-            type="button"
-            onClick={() => setFilter('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              filter === 'all' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
-            }`}
-          >
-            All
-          </button>
+
+          <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-2xl">
+            <button
+              id="billing-filter-pending"
+              type="button"
+              onClick={() => setFilter('pending')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                filter === 'pending' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
+              }`}
+            >
+              Pending ({nonCancelledOrders.filter(o => o.paymentStatus !== 'paid').length})
+            </button>
+            <button
+              id="billing-filter-paid"
+              type="button"
+              onClick={() => setFilter('paid')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                filter === 'paid' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
+              }`}
+            >
+              Settled ({nonCancelledOrders.filter(o => o.paymentStatus === 'paid').length})
+            </button>
+            <button
+              id="billing-filter-all"
+              type="button"
+              onClick={() => setFilter('all')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                filter === 'all' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
+              }`}
+            >
+              All
+            </button>
+          </div>
         </div>
       </div>
 
@@ -241,6 +255,12 @@ export const BillingManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* End of Day Z-Report Modal */}
+      <EndOfDayReportModal
+        isOpen={showZReportModal}
+        onClose={() => setShowZReportModal(false)}
+      />
     </div>
   );
 };

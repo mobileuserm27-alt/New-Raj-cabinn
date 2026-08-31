@@ -114,6 +114,7 @@ export interface Order {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
+  orderType?: 'dine_in' | 'takeaway' | 'delivery';
   specialNotes?: string;
   createdAt: string;
   updatedAt: string;

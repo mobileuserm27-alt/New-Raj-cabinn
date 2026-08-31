@@ -8,7 +8,9 @@ import {
   Users,
   UtensilsCrossed,
   ArrowUpRight,
-  Flame
+  Flame,
+  Calendar,
+  FileText
 } from 'lucide-react';
 import {
   AreaChart,
@@ -24,11 +26,13 @@ import {
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/api';
 import { AnalyticsSummary } from '../../types';
+import { EndOfDayReportModal } from './EndOfDayReportModal';
 
 export const AnalyticsDashboard: React.FC = () => {
   const { restaurant, orders, menuItems } = useApp();
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showZReportModal, setShowZReportModal] = useState<boolean>(false);
 
   const currency = restaurant?.branding.currencySymbol || '₹';
 
@@ -76,15 +80,27 @@ export const AnalyticsDashboard: React.FC = () => {
           </p>
         </div>
 
-        <button
-          id="btn-export-csv"
-          type="button"
-          onClick={exportCSV}
-          className="px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-        >
-          <Download className="w-4 h-4 text-rose-400" />
-          <span>Export Sales CSV</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="btn-open-z-report"
+            type="button"
+            onClick={() => setShowZReportModal(true)}
+            className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>End-of-Day Z-Report</span>
+          </button>
+
+          <button
+            id="btn-export-csv"
+            type="button"
+            onClick={exportCSV}
+            className="px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-rose-400" />
+            <span>Export Sales CSV</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
@@ -253,6 +269,12 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* End of Day Z-Report Modal */}
+      <EndOfDayReportModal
+        isOpen={showZReportModal}
+        onClose={() => setShowZReportModal(false)}
+      />
     </div>
   );
 };
