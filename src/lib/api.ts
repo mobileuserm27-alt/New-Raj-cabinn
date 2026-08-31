@@ -404,14 +404,11 @@ export const api = {
   },
 
   async deleteOrder(orderId: string, restaurantId?: string): Promise<boolean> {
-    const success = await safeFetch(
-      async () => {
-        const res = await fetch(`${API_BASE}/orders/${orderId}`, { method: 'DELETE' });
-        const data = await res.json();
-        return new Response(JSON.stringify(data.success), { headers: { 'content-type': 'application/json' } });
-      },
-      () => localStore.deleteOrder(orderId)
+    const resObj = await safeFetch<{ success: boolean }>(
+      () => fetch(`${API_BASE}/orders/${orderId}`, { method: 'DELETE' }),
+      () => ({ success: localStore.deleteOrder(orderId) })
     );
+    const success = resObj?.success ?? false;
     if (success) {
       cloudSync.syncOrderDeleted(restaurantId || 'raj-cabin', orderId);
     }
@@ -419,14 +416,11 @@ export const api = {
   },
 
   async clearAllOrders(restaurantId: string): Promise<boolean> {
-    const success = await safeFetch(
-      async () => {
-        const res = await fetch(`${API_BASE}/restaurants/${restaurantId}/orders`, { method: 'DELETE' });
-        const data = await res.json();
-        return new Response(JSON.stringify(data.success), { headers: { 'content-type': 'application/json' } });
-      },
-      () => localStore.clearAllOrders(restaurantId)
+    const resObj = await safeFetch<{ success: boolean }>(
+      () => fetch(`${API_BASE}/restaurants/${restaurantId}/orders`, { method: 'DELETE' }),
+      () => ({ success: localStore.clearAllOrders(restaurantId) })
     );
+    const success = resObj?.success ?? false;
     if (success) {
       cloudSync.syncOrdersCleared(restaurantId);
     }

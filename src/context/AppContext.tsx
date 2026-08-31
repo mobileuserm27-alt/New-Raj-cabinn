@@ -488,6 +488,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setMenuItems(finalItems);
         setTables(finalTables);
         setOrders(mergedOrders);
+        if (chimedOrderIdsRef.current.size === 0 && mergedOrders.length > 0) {
+          mergedOrders.forEach(o => chimedOrderIdsRef.current.add(o.id));
+        }
 
         // Merge waiter requests
         const waiterMap = new Map<string, WaiterRequest>();
