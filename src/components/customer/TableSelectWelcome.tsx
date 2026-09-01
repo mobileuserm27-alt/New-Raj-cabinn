@@ -311,15 +311,23 @@ export const TableSelectWelcome: React.FC = () => {
               </div>
 
               {/* Status Guide legend */}
-              <div className="flex items-center gap-3 mb-2 text-[11px] text-stone-400 px-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs shadow-emerald-400/50" />
-                  <span>{language === 'hi' ? 'खाली (Available)' : 'Available'}</span>
+              <div className="flex items-center justify-between mb-2.5 text-[11px] text-stone-400 px-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs shadow-emerald-400/50" />
+                    <span className="text-stone-300 font-medium">{language === 'hi' ? 'खाली (Available)' : 'Available'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" />
+                    <span className="text-stone-300 font-medium">{language === 'hi' ? 'व्यस्त (Occupied)' : 'Occupied'}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" />
-                  <span>{language === 'hi' ? 'व्यस्त (Occupied)' : 'Occupied / In Use'}</span>
-                </div>
+                {selectedTable && (
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Table #{selectedTable} {language === 'hi' ? 'चुनी गई' : 'Selected'}</span>
+                  </span>
+                )}
               </div>
 
               {isCustomMode ? (
@@ -330,7 +338,7 @@ export const TableSelectWelcome: React.FC = () => {
                     value={customTable}
                     onChange={e => setCustomTable(e.target.value)}
                     placeholder={language === 'hi' ? 'टेबल नंबर डालें (उदा. 15, T-2, Outdoor)' : 'Type table number (e.g. 15, T-2, Garden)'}
-                    className="w-full bg-stone-950 border border-rose-500/80 focus:ring-2 focus:ring-rose-500/20 text-white rounded-2xl px-4 py-3 text-sm font-bold transition placeholder:text-stone-600 outline-hidden"
+                    className="w-full bg-stone-950 border border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl px-4 py-3 text-sm font-bold transition placeholder:text-stone-600 outline-hidden"
                   />
                   {customTable.trim() && isTableOccupied(customTable.trim()) && (
                     <p className="text-xs text-amber-400 font-bold mt-1.5 flex items-center gap-1">
@@ -340,7 +348,7 @@ export const TableSelectWelcome: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-52 overflow-y-auto pr-1">
                   {availableTables.map(tInfo => {
                     const isSelected = selectedTable === tInfo.tableNumber;
                     const isOccupied = isTableOccupied(tInfo.tableNumber);
@@ -354,29 +362,49 @@ export const TableSelectWelcome: React.FC = () => {
                         className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 relative cursor-pointer ${
                           isSelected
                             ? isOccupied
-                              ? 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-400 text-white shadow-lg shadow-amber-600/30 scale-[1.02]'
-                              : 'bg-gradient-to-br from-rose-600 to-rose-700 border-rose-500 text-white shadow-lg shadow-rose-600/30 scale-[1.02]'
+                              ? 'bg-amber-900/60 border-amber-400 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-400 scale-[1.02]'
+                              : 'bg-emerald-900/50 border-emerald-400 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400 scale-[1.02]'
                             : isOccupied
-                            ? 'bg-amber-950/40 border-amber-900/60 text-amber-200 hover:border-amber-700 hover:bg-amber-900/50'
-                            : 'bg-stone-950 border-stone-800 text-stone-300 hover:border-emerald-800/80 hover:bg-stone-900'
+                            ? 'bg-stone-950/80 border-amber-900/50 text-amber-200/90 hover:border-amber-700 hover:bg-amber-950/30'
+                            : 'bg-stone-950 border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-900/70'
                         }`}
                       >
-                        {/* Live Status indicator pill */}
+                        {/* Live Status indicator */}
                         <div className="flex items-center gap-1">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isOccupied ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                            className={`w-2 h-2 rounded-full ${
+                              isOccupied ? 'bg-amber-400' : 'bg-emerald-400'
                             }`}
                           />
-                          <span className={`text-[10px] font-bold ${isSelected ? 'text-white' : isOccupied ? 'text-amber-400' : 'text-stone-400'}`}>
-                            {isOccupied ? (language === 'hi' ? 'व्यस्त' : 'Busy') : (language === 'hi' ? 'खाली' : 'Free')}
+                          <span
+                            className={`text-[10px] font-bold ${
+                              isSelected
+                                ? isOccupied ? 'text-amber-200' : 'text-emerald-300'
+                                : isOccupied ? 'text-amber-400' : 'text-emerald-400'
+                            }`}
+                          >
+                            {isOccupied
+                              ? (language === 'hi' ? 'व्यस्त' : 'Busy')
+                              : (language === 'hi' ? 'खाली' : 'Free')}
                           </span>
                         </div>
 
-                        <span className="text-lg font-black tracking-tight leading-none">#{tInfo.tableNumber}</span>
+                        <span className="text-xl font-black tracking-tight leading-none text-white">
+                          #{tInfo.tableNumber}
+                        </span>
 
-                        <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-stone-500'}`}>
-                          {tInfo.capacity} {language === 'hi' ? 'सीट' : 'Seats'}
+                        <span
+                          className={`text-[10px] ${
+                            isSelected ? 'text-stone-300 font-semibold' : 'text-stone-500'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <span className="text-emerald-300 font-bold flex items-center gap-0.5">
+                              ✓ {language === 'hi' ? 'चुना गया' : 'Selected'}
+                            </span>
+                          ) : (
+                            `${tInfo.capacity} ${language === 'hi' ? 'सीट' : 'Seats'}`
+                          )}
                         </span>
                       </button>
                     );
