@@ -152,6 +152,10 @@ interface AppContextType {
   addTable: (tableData: { tableNumber: string; capacity?: number; status?: string }) => Promise<TableInfo>;
   updateTable: (tableId: string, data: Partial<TableInfo>) => Promise<TableInfo>;
   deleteTable: (tableId: string) => Promise<boolean>;
+  occupiedTableNumbers: Set<string>;
+  isTableOccupied: (tableNum: string) => boolean;
+  getTableOccupancyDetails: (tableNum: string) => { isOccupied: boolean; ordersCount: number; customerName?: string; customerPhone?: string; grandTotal?: number };
+  freeUpTable: (tableNum: string) => Promise<void>;
 
   addMenuItem: (itemData: Partial<MenuItem>) => Promise<MenuItem>;
   updateMenuItem: (itemId: string, itemData: Partial<MenuItem>) => Promise<MenuItem>;
@@ -948,6 +952,87 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return ok;
   };
 
+  // Real-time occupied table calculation across all devices
+  const occupiedTableNumbers = React.useMemo(() => {
+    const set = new Set<string>();
+    // 1. From live active orders (received, accepted, preparing, ready, served) where payment is still pending
+    orders.forEach(o => {
+      if (['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) && o.paymentStatus !== 'paid') {
+        if (o.tableNumber) {
+          const num = o.tableNumber.toString().replace(/^table\s*/i, '').trim();
+          if (num) set.add(num);
+          set.add(o.tableNumber);
+        }
+      }
+    });
+    // 2. From tables marked as occupied or reserved in table registry
+    tables.forEach(t => {
+      if (t.status === 'occupied' || t.status === 'reserved') {
+        const num = t.tableNumber.toString().replace(/^table\s*/i, '').trim();
+        if (num) set.add(num);
+        set.add(t.tableNumber);
+      }
+    });
+    return set;
+  }, [orders, tables]);
+
+  const isTableOccupied = (tableNum: string): boolean => {
+    if (!tableNum) return false;
+    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
+    return occupiedTableNumbers.has(clean) || occupiedTableNumbers.has(tableNum);
+  };
+
+  const getTableOccupancyDetails = (tableNum: string) => {
+    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
+    const tableOrders = orders.filter(
+      o => {
+        const oClean = o.tableNumber?.toString().replace(/^table\s*/i, '').trim();
+        return (o.tableNumber === tableNum || oClean === clean) &&
+          ['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) &&
+          o.paymentStatus !== 'paid';
+      }
+    );
+    const hasActiveOrders = tableOrders.length > 0;
+    const isOccupied = hasActiveOrders || tables.some(
+      t => (t.tableNumber === tableNum || t.tableNumber.replace(/^table\s*/i, '').trim() === clean) &&
+        (t.status === 'occupied' || t.status === 'reserved')
+    );
+    const firstOrder = tableOrders[0];
+    const grandTotal = tableOrders.reduce((sum, o) => sum + o.grandTotal, 0);
+
+    return {
+      isOccupied,
+      ordersCount: tableOrders.length,
+      customerName: firstOrder?.customerName || '',
+      customerPhone: firstOrder?.customerPhone || '',
+      grandTotal
+    };
+  };
+
+  const freeUpTable = async (tableNum: string) => {
+    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
+    const tableOrders = orders.filter(
+      o => (o.tableNumber === tableNum || o.tableNumber?.replace(/^table\s*/i, '').trim() === clean) &&
+        o.status !== 'cancelled' &&
+        o.paymentStatus !== 'paid'
+    );
+
+    for (const order of tableOrders) {
+      await updateOrderPayment(order.id, 'paid', order.paymentMethod || 'cash');
+      if (order.status !== 'served') {
+        await updateOrderStatus(order.id, 'served');
+      }
+    }
+
+    const targetTbl = tables.find(
+      t => t.tableNumber === tableNum || t.tableNumber.replace(/^table\s*/i, '').trim() === clean
+    );
+    if (targetTbl) {
+      await updateTable(targetTbl.id, { status: 'available', currentOrderId: undefined });
+    }
+    showToast(`टेबल #${tableNum} अब खाली है`, `Table #${tableNum} is now available for new guests`, 'success');
+  };
+
   const addMenuItem = async (itemData: Partial<MenuItem>) => {
     if (!restaurant) throw new Error('No active restaurant');
     const created = await api.createMenuItem(restaurant.id, itemData);
@@ -1160,6 +1245,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addTable,
         updateTable,
         deleteTable,
+        occupiedTableNumbers,
+        isTableOccupied,
+        getTableOccupancyDetails,
+        freeUpTable,
         addMenuItem,
         updateMenuItem,
         deleteMenuItem,

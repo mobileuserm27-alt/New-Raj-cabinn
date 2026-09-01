@@ -20,7 +20,8 @@ export const ChangeTableModal: React.FC<ChangeTableModalProps> = ({ isOpen, onCl
     customerPhone,
     setCustomerPhone,
     language,
-    showToast
+    showToast,
+    isTableOccupied
   } = useApp();
 
   const [selectedTable, setSelectedTable] = useState<string>(activeTableNumber || '1');
@@ -45,7 +46,7 @@ export const ChangeTableModal: React.FC<ChangeTableModalProps> = ({ isOpen, onCl
     if (nameInput.trim()) setCustomerName(nameInput.trim());
     if (phoneInput.trim()) setCustomerPhone(phoneInput.trim());
 
-    showToast('टेबल अपडेट हो गया', `Table #${tableToUse} locked for your order`, 'success');
+    showToast('टेबल अपडेट हो गया', `Table #${tableToUse} active for your order`, 'success');
     onClose();
   };
 
@@ -165,18 +166,27 @@ export const ChangeTableModal: React.FC<ChangeTableModalProps> = ({ isOpen, onCl
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
                   {availableTables.map(tInfo => {
                     const isSelected = selectedTable === tInfo.tableNumber;
+                    const isOccupied = isTableOccupied(tInfo.tableNumber);
+
                     return (
                       <button
                         key={tInfo.id}
                         type="button"
                         onClick={() => setSelectedTable(tInfo.tableNumber)}
-                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center cursor-pointer relative ${
                           isSelected
-                            ? 'bg-rose-600 border-rose-500 text-white font-bold shadow-md shadow-rose-600/30'
+                            ? isOccupied
+                              ? 'bg-amber-600 border-amber-500 text-white font-bold shadow-md shadow-amber-600/30'
+                              : 'bg-rose-600 border-rose-500 text-white font-bold shadow-md shadow-rose-600/30'
+                            : isOccupied
+                            ? 'bg-amber-950/30 border-amber-900/60 text-amber-300 hover:bg-amber-900/40'
                             : 'bg-stone-950 border-stone-800 text-stone-300 hover:border-stone-700'
                         }`}
                       >
-                        <span className="text-[10px] text-stone-400">Table</span>
+                        <div className="flex items-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOccupied ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                          <span className="text-[9px] text-stone-400">{isOccupied ? 'Busy' : 'Free'}</span>
+                        </div>
                         <span className="text-base font-black">#{tInfo.tableNumber}</span>
                       </button>
                     );

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   UtensilsCrossed,
   User,
@@ -10,7 +10,10 @@ import {
   Receipt,
   Maximize2,
   X,
-  MapPin
+  MapPin,
+  AlertTriangle,
+  Users,
+  CheckCircle2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { APP_IMAGES } from '../../assets/images';
@@ -33,18 +36,64 @@ export const TableSelectWelcome: React.FC = () => {
     t,
     openCustomerMenuForTable,
     openSecretAdminModal,
-    showToast
+    showToast,
+    occupiedTableNumbers,
+    isTableOccupied,
+    getTableOccupancyDetails
   } = useApp();
 
-  const [selectedTable, setSelectedTable] = useState<string>(activeTableNumber || '1');
+  // Fallback sample tables if none loaded
+  const rawTables = tables.length > 0 ? tables : [
+    { id: 't1', restaurantId: 'rest_001', tableNumber: '1', capacity: 2, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't2', restaurantId: 'rest_001', tableNumber: '2', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't3', restaurantId: 'rest_001', tableNumber: '3', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't4', restaurantId: 'rest_001', tableNumber: '4', capacity: 6, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't5', restaurantId: 'rest_001', tableNumber: '5', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't6', restaurantId: 'rest_001', tableNumber: '6', capacity: 2, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't7', restaurantId: 'rest_001', tableNumber: '7', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't8', restaurantId: 'rest_001', tableNumber: '8', capacity: 8, status: 'available' as const, qrCodeUrl: '' },
+    { id: 't12', restaurantId: 'rest_001', tableNumber: '12', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
+  ];
+
+  const availableTables = useMemo(() => {
+    return Array.from(new Map<string, TableInfo>(rawTables.map(t => [t.id, t])).values());
+  }, [rawTables]);
+
+  // Find first free table
+  const firstFreeTable = useMemo(() => {
+    const free = availableTables.find(t => !isTableOccupied(t.tableNumber));
+    return free ? free.tableNumber : (availableTables[0]?.tableNumber || '1');
+  }, [availableTables, isTableOccupied]);
+
+  // Initial table selection defaults to first free table if active table is empty or occupied
+  const [selectedTable, setSelectedTable] = useState<string>(() => {
+    if (activeTableNumber && !isTableOccupied(activeTableNumber)) {
+      return activeTableNumber;
+    }
+    return firstFreeTable;
+  });
+
   const [customTable, setCustomTable] = useState<string>('');
   const [nameInput, setNameInput] = useState<string>(customerName || '');
   const [phoneInput, setPhoneInput] = useState<string>(customerPhone || '');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [isPhotoExpanded, setIsPhotoExpanded] = useState<boolean>(false);
 
+  // Occupied table warning modal state
+  const [occupiedWarningTable, setOccupiedWarningTable] = useState<string | null>(null);
+
+  // If initial table is occupied on mount and user hasn't explicitly chosen one, switch to first free table
+  useEffect(() => {
+    if (selectedTable && isTableOccupied(selectedTable)) {
+      const free = availableTables.find(t => !isTableOccupied(t.tableNumber));
+      if (free) {
+        setSelectedTable(free.tableNumber);
+      }
+    }
+  }, [occupiedTableNumbers]);
+
   // Auto-redirect to dining menu if already arrived with scanned QR code table
-  React.useEffect(() => {
+  useEffect(() => {
     if (isTableLockedFromQr && activeTableNumber) {
       openCustomerMenuForTable(activeTableNumber);
     }
@@ -67,6 +116,24 @@ export const TableSelectWelcome: React.FC = () => {
     }, 2200);
   };
 
+  const handleTableClick = (tableNum: string) => {
+    setSelectedTable(tableNum);
+    if (isTableOccupied(tableNum)) {
+      setOccupiedWarningTable(tableNum);
+    }
+  };
+
+  const proceedWithDining = (tableNum: string) => {
+    if (nameInput.trim()) {
+      setCustomerName(nameInput.trim());
+    }
+    if (phoneInput.trim()) {
+      setCustomerPhone(phoneInput.trim());
+    }
+    setOccupiedWarningTable(null);
+    openCustomerMenuForTable(tableNum);
+  };
+
   const handleStartDining = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -77,30 +144,16 @@ export const TableSelectWelcome: React.FC = () => {
       return;
     }
 
-    if (nameInput.trim()) {
-      setCustomerName(nameInput.trim());
-    }
-    if (phoneInput.trim()) {
-      setCustomerPhone(phoneInput.trim());
+    // Check if selected table is occupied
+    if (isTableOccupied(tableToUse)) {
+      setOccupiedWarningTable(tableToUse);
+      return;
     }
 
-    openCustomerMenuForTable(tableToUse);
+    proceedWithDining(tableToUse);
   };
 
-  // Fallback sample tables if none loaded
-  const rawTables = tables.length > 0 ? tables : [
-    { id: 't1', restaurantId: 'rest_001', tableNumber: '1', capacity: 2, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't2', restaurantId: 'rest_001', tableNumber: '2', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't3', restaurantId: 'rest_001', tableNumber: '3', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't4', restaurantId: 'rest_001', tableNumber: '4', capacity: 6, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't5', restaurantId: 'rest_001', tableNumber: '5', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't6', restaurantId: 'rest_001', tableNumber: '6', capacity: 2, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't7', restaurantId: 'rest_001', tableNumber: '7', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't8', restaurantId: 'rest_001', tableNumber: '8', capacity: 8, status: 'available' as const, qrCodeUrl: '' },
-    { id: 't12', restaurantId: 'rest_001', tableNumber: '12', capacity: 4, status: 'available' as const, qrCodeUrl: '' },
-  ];
-
-  const availableTables = Array.from(new Map<string, TableInfo>(rawTables.map(t => [t.id, t])).values());
+  const occupancyDetails = occupiedWarningTable ? getTableOccupancyDetails(occupiedWarningTable) : null;
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between selection:bg-rose-600 selection:text-white relative overflow-hidden">
@@ -241,7 +294,7 @@ export const TableSelectWelcome: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 2: Select Table Number */}
+            {/* Step 2: Select Table Number with Live Status */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold text-stone-300 flex items-center gap-1.5">
@@ -257,6 +310,18 @@ export const TableSelectWelcome: React.FC = () => {
                 </button>
               </div>
 
+              {/* Status Guide legend */}
+              <div className="flex items-center gap-3 mb-2 text-[11px] text-stone-400 px-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs shadow-emerald-400/50" />
+                  <span>{language === 'hi' ? 'खाली (Available)' : 'Available'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" />
+                  <span>{language === 'hi' ? 'व्यस्त (Occupied)' : 'Occupied / In Use'}</span>
+                </div>
+              </div>
+
               {isCustomMode ? (
                 <div>
                   <input
@@ -267,27 +332,52 @@ export const TableSelectWelcome: React.FC = () => {
                     placeholder={language === 'hi' ? 'टेबल नंबर डालें (उदा. 15, T-2, Outdoor)' : 'Type table number (e.g. 15, T-2, Garden)'}
                     className="w-full bg-stone-950 border border-rose-500/80 focus:ring-2 focus:ring-rose-500/20 text-white rounded-2xl px-4 py-3 text-sm font-bold transition placeholder:text-stone-600 outline-hidden"
                   />
+                  {customTable.trim() && isTableOccupied(customTable.trim()) && (
+                    <p className="text-xs text-amber-400 font-bold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{language === 'hi' ? `टेबल #${customTable} पर पहले से आर्डर चालू है (Occupied)` : `Table #${customTable} is currently occupied with active orders`}</span>
+                    </p>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
                   {availableTables.map(tInfo => {
                     const isSelected = selectedTable === tInfo.tableNumber;
+                    const isOccupied = isTableOccupied(tInfo.tableNumber);
+
                     return (
                       <button
                         key={tInfo.id}
                         type="button"
                         id={`btn-table-choice-${tInfo.tableNumber}`}
-                        onClick={() => setSelectedTable(tInfo.tableNumber)}
-                        className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                        onClick={() => handleTableClick(tInfo.tableNumber)}
+                        className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 relative cursor-pointer ${
                           isSelected
-                            ? 'bg-gradient-to-br from-rose-600 to-rose-700 border-rose-500 text-white shadow-lg shadow-rose-600/30 scale-[1.02]'
-                            : 'bg-stone-950 border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-900'
+                            ? isOccupied
+                              ? 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-400 text-white shadow-lg shadow-amber-600/30 scale-[1.02]'
+                              : 'bg-gradient-to-br from-rose-600 to-rose-700 border-rose-500 text-white shadow-lg shadow-rose-600/30 scale-[1.02]'
+                            : isOccupied
+                            ? 'bg-amber-950/40 border-amber-900/60 text-amber-200 hover:border-amber-700 hover:bg-amber-900/50'
+                            : 'bg-stone-950 border-stone-800 text-stone-300 hover:border-emerald-800/80 hover:bg-stone-900'
                         }`}
                       >
-                        <span className="text-xs font-medium text-stone-300">
-                          {language === 'hi' ? 'टेबल' : 'Table'}
+                        {/* Live Status indicator pill */}
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isOccupied ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                            }`}
+                          />
+                          <span className={`text-[10px] font-bold ${isSelected ? 'text-white' : isOccupied ? 'text-amber-400' : 'text-stone-400'}`}>
+                            {isOccupied ? (language === 'hi' ? 'व्यस्त' : 'Busy') : (language === 'hi' ? 'खाली' : 'Free')}
+                          </span>
+                        </div>
+
+                        <span className="text-lg font-black tracking-tight leading-none">#{tInfo.tableNumber}</span>
+
+                        <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-stone-500'}`}>
+                          {tInfo.capacity} {language === 'hi' ? 'सीट' : 'Seats'}
                         </span>
-                        <span className="text-lg font-black tracking-tight">#{tInfo.tableNumber}</span>
                       </button>
                     );
                   })}
@@ -346,6 +436,106 @@ export const TableSelectWelcome: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Occupied Table Conflict Warning Modal */}
+      {occupiedWarningTable && occupancyDetails && (
+        <div
+          id="modal-occupied-table-warning"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setOccupiedWarningTable(null)}
+        >
+          <div
+            id="occupied-warning-card"
+            className="bg-stone-900 border border-amber-500/50 rounded-3xl w-full max-w-sm p-6 shadow-2xl text-stone-100 space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-black text-white">
+                {language === 'hi' ? `टेबल #${occupiedWarningTable} पहले से व्यस्त है` : `Table #${occupiedWarningTable} is Occupied`}
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed">
+                {language === 'hi'
+                  ? `इस टेबल पर पहले से अन्य ग्राहक बैठे हैं और लाइव आर्डर चल रहा है।`
+                  : `This table currently has active dining guests with ongoing orders.`}
+              </p>
+            </div>
+
+            {/* Occupied table summary */}
+            <div className="p-3.5 bg-stone-950 rounded-2xl border border-stone-800 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-stone-400">
+                <span>{language === 'hi' ? 'टेबल स्थिति:' : 'Table Status:'}</span>
+                <span className="font-bold text-amber-400">🔴 {language === 'hi' ? 'डाइनिंग चालू (Occupied)' : 'Active Dining'}</span>
+              </div>
+              {occupancyDetails.customerName && (
+                <div className="flex items-center justify-between text-stone-400">
+                  <span>{language === 'hi' ? 'ग्राहक:' : 'Guest:'}</span>
+                  <span className="font-bold text-white">{occupancyDetails.customerName}</span>
+                </div>
+              )}
+              {occupancyDetails.ordersCount > 0 && (
+                <div className="flex items-center justify-between text-stone-400">
+                  <span>{language === 'hi' ? 'चालू आर्डर:' : 'Active Orders:'}</span>
+                  <span className="font-bold text-emerald-400">{occupancyDetails.ordersCount} Order(s) (₹{occupancyDetails.grandTotal})</span>
+                </div>
+              )}
+            </div>
+
+            {/* Smart Action Buttons */}
+            <div className="space-y-2 pt-1">
+              {/* Option 1: Pick Free Table */}
+              <button
+                type="button"
+                id="btn-pick-free-table"
+                onClick={() => {
+                  setSelectedTable(firstFreeTable);
+                  setOccupiedWarningTable(null);
+                  showToast(
+                    `खाली टेबल #${firstFreeTable} चुनी गई`,
+                    `Selected available free table #${firstFreeTable}`,
+                    'success'
+                  );
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  {language === 'hi'
+                    ? `🟢 खाली टेबल #${firstFreeTable} चुनें (Pick Free Table)`
+                    : `🟢 Switch to Free Table #${firstFreeTable}`}
+                </span>
+              </button>
+
+              {/* Option 2: Join Table if sitting together */}
+              <button
+                type="button"
+                id="btn-join-occupied-table"
+                onClick={() => proceedWithDining(occupiedWarningTable)}
+                className="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5 text-rose-400" />
+                <span>
+                  {language === 'hi'
+                    ? `👥 हम टेबल #${occupiedWarningTable} पर ही साथ बैठे हैं (Join Table)`
+                    : `👥 I'm sitting at Table #${occupiedWarningTable} (Join Tab)`}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-cancel-occupied-warning"
+                onClick={() => setOccupiedWarningTable(null)}
+                className="w-full py-2 text-stone-500 hover:text-stone-300 text-xs font-semibold transition"
+              >
+                {language === 'hi' ? 'वापस जाएं' : 'Go Back'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Expanded Full Photo Lightbox Modal */}
       {isPhotoExpanded && (

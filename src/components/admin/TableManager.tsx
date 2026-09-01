@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import QRCode from 'qrcode';
-import { Plus, QrCode, Printer, Users, Trash2, ExternalLink, Download, AlertTriangle, X, ShieldAlert } from 'lucide-react';
+import { Plus, QrCode, Printer, Users, Trash2, ExternalLink, Download, AlertTriangle, X, ShieldAlert, CheckCircle, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TableInfo } from '../../types';
 import { QRSheetGenerator } from './QRSheetGenerator';
 
 export const TableManager: React.FC = () => {
-  const { tables, addTable, deleteTable, restaurant, orders, waiterRequests, openCustomerMenuForTable, showToast } = useApp();
+  const {
+    tables,
+    addTable,
+    deleteTable,
+    restaurant,
+    orders,
+    waiterRequests,
+    openCustomerMenuForTable,
+    showToast,
+    getTableOccupancyDetails,
+    freeUpTable
+  } = useApp();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTableNum, setNewTableNum] = useState('');
@@ -15,6 +26,7 @@ export const TableManager: React.FC = () => {
   const [singleTableQrPreview, setSingleTableQrPreview] = useState<{ table: TableInfo; qrUrl: string } | null>(null);
   const [tableToDelete, setTableToDelete] = useState<TableInfo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [clearingTableNum, setClearingTableNum] = useState<string | null>(null);
 
   const baseUrl = window.location.origin;
 
@@ -55,6 +67,17 @@ export const TableManager: React.FC = () => {
     }
   };
 
+  const handleClearTable = async (tableNum: string) => {
+    try {
+      setClearingTableNum(tableNum);
+      await freeUpTable(tableNum);
+    } catch (err) {
+      showToast('Error', 'Could not clear table', 'error');
+    } finally {
+      setClearingTableNum(null);
+    }
+  };
+
   const handlePreviewQR = async (table: TableInfo) => {
     if (!restaurant) return;
     const targetUrl = `${baseUrl}/?restaurant=${restaurant.slug}&table=${table.tableNumber}`;
@@ -74,7 +97,7 @@ export const TableManager: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-0.5">
-            Every table has a dedicated QR code URL mapped directly to its table number
+            Every table has a dedicated QR code URL mapped directly to its table number with real-time occupancy management
           </p>
         </div>
 
@@ -106,15 +129,12 @@ export const TableManager: React.FC = () => {
       {/* Tables Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {Array.from(new Map<string, TableInfo>((tables || []).map(t => [t.id, t])).values()).map(table => {
-          // Check live table status based on orders
-          const tableOrders = orders.filter(
-            o => o.tableNumber === table.tableNumber && ['received', 'accepted', 'preparing', 'ready'].includes(o.status)
-          );
+          const occ = getTableOccupancyDetails(table.tableNumber);
           const hasPendingWaiter = waiterRequests.some(
             w => w.tableNumber === table.tableNumber && w.status === 'pending'
           );
 
-          const isOccupied = tableOrders.length > 0;
+          const isOccupied = occ.isOccupied;
 
           const displayTableTitle = table.tableNumber.toLowerCase().startsWith('table')
             ? table.tableNumber
@@ -158,18 +178,40 @@ export const TableManager: React.FC = () => {
                         : 'bg-emerald-100 text-emerald-800'
                     }`}
                   >
-                    {hasPendingWaiter ? 'Service Alert' : isOccupied ? 'Occupied' : 'Available'}
+                    {hasPendingWaiter ? 'Service Alert' : isOccupied ? '🔴 Occupied' : '🟢 Free'}
                   </span>
                 </div>
 
                 {/* Table Live stats */}
                 <div className="mt-4 pt-3 border-t border-stone-100 space-y-1 text-xs">
                   {isOccupied ? (
-                    <div className="text-amber-800 font-medium">
-                      🍽️ {tableOrders.length} active order(s) in progress
+                    <div className="space-y-1">
+                      <div className="text-amber-800 font-bold flex items-center justify-between">
+                        <span>🍽️ {occ.ordersCount} active order(s)</span>
+                        <span>₹{occ.grandTotal}</span>
+                      </div>
+                      {occ.customerName && (
+                        <div className="text-stone-500 text-[11px]">
+                          Guest: <span className="font-semibold text-stone-800">{occ.customerName}</span>
+                        </div>
+                      )}
+                      {/* 1-Click Free Table Action for Waiter/Admin */}
+                      <button
+                        type="button"
+                        id={`btn-clear-table-${table.tableNumber}`}
+                        onClick={() => handleClearTable(table.tableNumber)}
+                        disabled={clearingTableNum === table.tableNumber}
+                        className="mt-2 w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>{clearingTableNum === table.tableNumber ? 'Clearing...' : 'टेबल खाली करें (Free Table)'}</span>
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-stone-400">Ready for next dining guest</div>
+                    <div className="text-emerald-700 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>Ready for next dining guest</span>
+                    </div>
                   )}
                 </div>
               </div>
