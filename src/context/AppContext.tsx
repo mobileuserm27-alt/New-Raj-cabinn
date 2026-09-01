@@ -952,10 +952,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return ok;
   };
 
-  // Real-time occupied table calculation across all devices
+  // Real-time occupied table calculation strictly from live active un-paid orders
   const occupiedTableNumbers = React.useMemo(() => {
     const set = new Set<string>();
-    // 1. From live active orders (received, accepted, preparing, ready, served) where payment is still pending
+    // From live active orders (received, accepted, preparing, ready, served) where payment is still pending
     orders.forEach(o => {
       if (['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) && o.paymentStatus !== 'paid') {
         if (o.tableNumber) {
@@ -965,16 +965,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       }
     });
-    // 2. From tables marked as occupied or reserved in table registry
-    tables.forEach(t => {
-      if (t.status === 'occupied' || t.status === 'reserved') {
-        const num = t.tableNumber.toString().replace(/^table\s*/i, '').trim();
-        if (num) set.add(num);
-        set.add(t.tableNumber);
-      }
-    });
     return set;
-  }, [orders, tables]);
+  }, [orders]);
 
   const isTableOccupied = (tableNum: string): boolean => {
     if (!tableNum) return false;
@@ -993,10 +985,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     );
     const hasActiveOrders = tableOrders.length > 0;
-    const isOccupied = hasActiveOrders || tables.some(
-      t => (t.tableNumber === tableNum || t.tableNumber.replace(/^table\s*/i, '').trim() === clean) &&
-        (t.status === 'occupied' || t.status === 'reserved')
-    );
+    const isOccupied = hasActiveOrders;
     const firstOrder = tableOrders[0];
     const grandTotal = tableOrders.reduce((sum, o) => sum + o.grandTotal, 0);
 

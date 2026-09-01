@@ -52,7 +52,8 @@ let isConnecting: boolean = false;
 // Brokers list for high-availability auto-failover
 const BROKER_URLS = [
   'wss://broker.emqx.io:8084/mqtt',
-  'wss://broker.hivemq.com:8884/mqtt'
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://test.mosquitto.org:8081/mqtt'
 ];
 let currentBrokerIdx = 0;
 
@@ -60,6 +61,7 @@ function initMqtt(restaurantId: string = 'rest_raj_001') {
   if (typeof window === 'undefined') return;
 
   const targetTopic = getTopic(restaurantId);
+  const snapshotTopic = `${targetTopic}/snapshot`;
 
   if (mqttClient && mqttClient.connected && currentTopic === targetTopic) {
     return;
@@ -78,7 +80,7 @@ function initMqtt(restaurantId: string = 'rest_raj_001') {
   isConnecting = true;
 
   const brokerUrl = BROKER_URLS[currentBrokerIdx];
-  const clientId = `snd_app_${Math.random().toString(16).slice(2, 10)}`;
+  const clientId = `snd_raj_${Math.random().toString(16).slice(2, 10)}`;
 
   try {
     const client = mqtt.connect(brokerUrl, {
@@ -91,24 +93,34 @@ function initMqtt(restaurantId: string = 'rest_raj_001') {
 
     client.on('connect', () => {
       isConnecting = false;
-      client.subscribe(targetTopic, { qos: 1 }, (err) => {
-        if (err) {
-          console.debug('MQTT subscribe error:', err);
-        }
-      });
-      // Also subscribe to root orders channel
+      client.subscribe(targetTopic, { qos: 1 });
+      client.subscribe(snapshotTopic, { qos: 1 });
       client.subscribe('snd_rajcabin_v4/all/events', { qos: 1 });
     });
 
     client.on('message', (topic, message) => {
       try {
         const raw = message.toString();
-        const event = JSON.parse(raw) as CloudSyncEvent;
+        const event = JSON.parse(raw);
+        if (topic === snapshotTopic && event && Array.isArray(event.orders)) {
+          // Received full active orders snapshot
+          const existing = getCachedOrders();
+          const map = new Map(existing.map(o => [o.id, o]));
+          event.orders.forEach((o: Order) => map.set(o.id, o));
+          const updated = Array.from(map.values());
+          localStorage.setItem('snd_cloud_cached_orders_v4', JSON.stringify(updated));
+          // Notify listeners of orders
+          event.orders.forEach((o: Order) => {
+            listeners.forEach(fn => fn({ type: 'new_order', order: o }));
+          });
+          return;
+        }
+
         if (event && event.type) {
           // Notify local listeners
-          listeners.forEach(fn => fn(event));
+          listeners.forEach(fn => fn(event as CloudSyncEvent));
           // Store in offline cache for quick recovery
-          saveEventToCache(event);
+          saveEventToCache(event as CloudSyncEvent);
         }
       } catch (err) {
         console.debug('MQTT message parse error', err);
@@ -117,7 +129,6 @@ function initMqtt(restaurantId: string = 'rest_raj_001') {
 
     client.on('error', (err) => {
       console.debug('MQTT client error, switching broker:', err);
-      // Switch broker on error
       currentBrokerIdx = (currentBrokerIdx + 1) % BROKER_URLS.length;
     });
 
@@ -190,6 +201,7 @@ export const cloudSync = {
     this.broadcastLocal(event);
 
     const topic = getTopic(restaurantId);
+    const snapshotTopic = `${topic}/snapshot`;
 
     // Ensure client is ready
     if (!mqttClient || !mqttClient.connected) {
@@ -197,6 +209,16 @@ export const cloudSync = {
     }
 
     const payload = JSON.stringify(event);
+
+    // Update and publish retained snapshot for new devices
+    try {
+      const cached = getCachedOrders();
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(snapshotTopic, JSON.stringify({ orders: cached }), { qos: 1, retain: true });
+      }
+    } catch (e) {
+      // ignore
+    }
 
     return new Promise<boolean>((resolve) => {
       if (mqttClient && mqttClient.connected) {
