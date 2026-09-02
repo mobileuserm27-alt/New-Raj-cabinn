@@ -35,7 +35,8 @@ export const OrdersManager: React.FC = () => {
     setSoundEnabled,
     showToast,
     refreshData,
-    sendTestLiveOrder
+    sendTestLiveOrder,
+    simulateBulkLiveOrders
   } = useApp();
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -44,6 +45,7 @@ export const OrdersManager: React.FC = () => {
   const [showClearAllModal, setShowClearAllModal] = useState<boolean>(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [showZReportModal, setShowZReportModal] = useState<boolean>(false);
 
   const currency = restaurant?.branding.currencySymbol || '₹';
@@ -130,18 +132,42 @@ export const OrdersManager: React.FC = () => {
 
         {/* Action icons & Clear History Button */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* ⚡ Send Live Test Order Demo Button */}
+          {/* ⚡ Send Live Single Test Order */}
           <button
             id="btn-demo-live-order"
             type="button"
             onClick={async () => {
               await sendTestLiveOrder();
             }}
-            className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer animate-pulse"
-            title="Send an instant live test order to demonstrate real-time receipt & kitchen chime"
+            className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            title="Send 1 instant test order"
           >
             <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>⚡ Test Live Order Demo</span>
+            <span>⚡ Test 1 Order</span>
+          </button>
+
+          {/* 🚀 Simulate 12 Simultaneous Tables Order */}
+          <button
+            id="btn-demo-12-tables-order"
+            type="button"
+            disabled={isSimulating}
+            onClick={async () => {
+              setIsSimulating(true);
+              try {
+                await simulateBulkLiveOrders(12);
+              } catch (e) {
+                showToast('Error', 'Failed to simulate 12 orders', 'warn');
+              } finally {
+                setIsSimulating(false);
+              }
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+              isSimulating ? 'opacity-70 cursor-wait' : 'animate-pulse'
+            }`}
+            title="Simulate 12 customers ordering from Tables 1 to 12 simultaneously"
+          >
+            <Sparkles className="w-4 h-4 text-amber-200" />
+            <span>{isSimulating ? 'Placing 12 Orders...' : '🚀 Test 12 Tables (Bulk Rush)'}</span>
           </button>
 
           {/* Refresh data button */}

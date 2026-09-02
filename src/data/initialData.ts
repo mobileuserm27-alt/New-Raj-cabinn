@@ -623,8 +623,13 @@ export const INITIAL_TABLES: TableInfo[] = [
   { id: 'tbl_rc_4', restaurantId: 'rest_raj_001', tableNumber: '4', capacity: 6, status: 'available' },
   { id: 'tbl_rc_5', restaurantId: 'rest_raj_001', tableNumber: '5', capacity: 2, status: 'available' },
   { id: 'tbl_rc_6', restaurantId: 'rest_raj_001', tableNumber: '6', capacity: 8, status: 'available' },
+  { id: 'tbl_rc_7', restaurantId: 'rest_raj_001', tableNumber: '7', capacity: 4, status: 'available' },
+  { id: 'tbl_rc_8', restaurantId: 'rest_raj_001', tableNumber: '8', capacity: 4, status: 'available' },
+  { id: 'tbl_rc_9', restaurantId: 'rest_raj_001', tableNumber: '9', capacity: 2, status: 'available' },
+  { id: 'tbl_rc_10', restaurantId: 'rest_raj_001', tableNumber: '10', capacity: 6, status: 'available' },
+  { id: 'tbl_rc_11', restaurantId: 'rest_raj_001', tableNumber: '11', capacity: 4, status: 'available' },
   { id: 'tbl_rc_12', restaurantId: 'rest_raj_001', tableNumber: '12', capacity: 4, status: 'available' },
-  { id: 'tbl_rc_15', restaurantId: 'rest_raj_001', tableNumber: '15', capacity: 4, status: 'available' }
+  { id: 'tbl_rc_15', restaurantId: 'rest_raj_001', tableNumber: '15', capacity: 8, status: 'available' }
 ];
 
 export const INITIAL_ORDERS: Order[] = [];

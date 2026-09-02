@@ -172,6 +172,7 @@ interface AppContextType {
   updateRestaurantBranding: (data: Partial<Restaurant>) => Promise<Restaurant>;
   updateRestaurantProfile: (data: Partial<Restaurant>) => Promise<Restaurant>;
   sendTestLiveOrder: () => Promise<Order>;
+  simulateBulkLiveOrders: (count?: number) => Promise<Order[]>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1144,6 +1145,83 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return newOrder;
   };
 
+  const simulateBulkLiveOrders = async (count: number = 12): Promise<Order[]> => {
+    if (!restaurant) throw new Error('No active restaurant');
+
+    const guestProfiles = [
+      { name: 'Rahul Sharma', phone: '9830112233', notes: 'Extra spicy biryani please', items: ['Biryani', 'Naan'] },
+      { name: 'Priya Sen', phone: '9831223344', notes: 'Less oil in curry, serve hot', items: ['Paneer', 'Roti', 'Water'] },
+      { name: 'Amit Banerjee', phone: '9832334455', notes: 'Table near AC, fast service', items: ['Mutton', 'Naan'] },
+      { name: 'Sneha Das', phone: '9833445566', notes: 'Make chicken well cooked', items: ['Biryani', 'Thums Up'] },
+      { name: 'Rajesh Roy', phone: '9834556677', notes: 'Crispy dosa with extra sambar', items: ['Dosa', 'Chai'] },
+      { name: 'Anjali Dutta', phone: '9835667788', notes: 'Less spicy, fresh food', items: ['Chilli', 'Soda'] },
+      { name: 'Rohit Mukherjee', phone: '9836778899', notes: 'Medium spice level', items: ['Paneer', 'Paratha', 'Lassi'] },
+      { name: 'Puja Chatterjee', phone: '9837889900', notes: 'Extra green chutney & onions', items: ['Kebab', 'Water'] },
+      { name: 'Saurav Mondal', phone: '9838990011', notes: 'Make fried rice crispy', items: ['Fried Rice', 'Chilli Chicken'] },
+      { name: 'Megha Paul', phone: '9839001122', notes: 'Extra tender chicken malai', items: ['Tikka', 'Naan'] },
+      { name: 'Debanjan Saha', phone: '9840112233', notes: 'Extra Kasundi mustard dip', items: ['Fish Fry', 'Chai'] },
+      { name: 'Kavita Singh', phone: '9841223344', notes: 'Serve dessert warm with rabdi', items: ['Gulab Jamun', 'Chai'] }
+    ];
+
+    const targetTables = tables.length >= count
+      ? tables.slice(0, count).map(t => t.tableNumber)
+      : Array.from({ length: count }, (_, i) => (i + 1).toString());
+
+    const createdOrders: Order[] = [];
+
+    for (let i = 0; i < Math.min(count, guestProfiles.length); i++) {
+      const profile = guestProfiles[i];
+      const tableNum = targetTables[i] || (i + 1).toString();
+
+      // Find matching items from menu or pick varied items
+      const selectedDishes = menuItems.filter(m =>
+        profile.items.some(pi => m.name.toLowerCase().includes(pi.toLowerCase()))
+      );
+
+      const finalDishes = selectedDishes.length > 0 ? selectedDishes : menuItems.slice(i % 4, (i % 4) + 2);
+
+      const orderItems = (finalDishes.length > 0 ? finalDishes : menuItems.slice(0, 2)).map(d => ({
+        id: `oi-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`,
+        menuItemId: d.id,
+        name: d.name,
+        hindiName: d.hindiName,
+        unitPrice: d.price,
+        quantity: 1,
+        totalPrice: d.price,
+        dietType: d.dietType || 'non_veg'
+      }));
+
+      const newOrder = await api.placeOrder({
+        restaurantId: restaurant.id,
+        tableNumber: tableNum,
+        customerName: profile.name,
+        customerPhone: profile.phone,
+        items: orderItems,
+        specialNotes: `⚡ [Table #${tableNum}] ${profile.notes}`
+      });
+
+      createdOrders.push(newOrder);
+    }
+
+    setOrders(prev => {
+      const ids = new Set(createdOrders.map(o => o.id));
+      return [...createdOrders, ...prev.filter(o => !ids.has(o.id))];
+    });
+
+    if (restaurant) {
+      const freshTables = await api.getTables(restaurant.id);
+      setTables(freshTables);
+    }
+
+    playNotificationChime('order');
+    showToast(
+      `🚀 ${createdOrders.length} Simultaneous Orders Live!`,
+      `Tables #${createdOrders[0]?.tableNumber} to #${createdOrders[createdOrders.length - 1]?.tableNumber} ordered together. KDS & Billing active!`,
+      'success'
+    );
+    return createdOrders;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1249,7 +1327,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteStaffMember,
         updateRestaurantBranding,
         updateRestaurantProfile: updateRestaurantBranding,
-        sendTestLiveOrder
+        sendTestLiveOrder,
+        simulateBulkLiveOrders
       }}
     >
       {children}
