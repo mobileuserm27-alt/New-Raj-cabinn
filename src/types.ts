@@ -149,6 +149,8 @@ export interface RestaurantBranding {
   secondaryColor?: string;
   logoUrl?: string;
   coverImageUrl?: string;
+  upiId?: string; // e.g. "9831684703@paytm"
+  upiQrImageUrl?: string; // QR code image
   tagline?: string;
   currencySymbol: string; // e.g. "₹"
   taxPercentage: number; // e.g. 5%
