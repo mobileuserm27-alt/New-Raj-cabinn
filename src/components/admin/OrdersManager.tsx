@@ -47,6 +47,7 @@ export const OrdersManager: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [showZReportModal, setShowZReportModal] = useState<boolean>(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const currency = restaurant?.branding.currencySymbol || '₹';
 
@@ -405,19 +406,42 @@ export const OrdersManager: React.FC = () => {
                         <button
                           id={`btn-accept-order-${order.id}`}
                           type="button"
-                          onClick={() => {
-                            updateOrderStatus(order.id, 'accepted');
-                            showToast('Order Accepted', `${order.orderNumber} accepted for Table ${order.tableNumber}`, 'success');
+                          disabled={updatingOrderId === order.id}
+                          onClick={async () => {
+                            setUpdatingOrderId(order.id);
+                            try {
+                              await updateOrderStatus(order.id, 'accepted');
+                              showToast(
+                                'Order Accepted!',
+                                `${order.orderNumber} accepted for Table ${order.tableNumber}. Moved to Kitchen/Accepted queue.`,
+                                'success'
+                              );
+                            } finally {
+                              setUpdatingOrderId(null);
+                            }
                           }}
-                          className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                          className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1"
                         >
-                          ACCEPT ORDER
+                          {updatingOrderId === order.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <span>ACCEPT ORDER</span>
+                          )}
                         </button>
                         <button
                           id={`btn-reject-order-${order.id}`}
                           type="button"
-                          onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                          className="px-3 py-2 rounded-xl border border-stone-300 hover:bg-rose-50 hover:text-rose-700 text-stone-600 text-xs font-bold transition cursor-pointer"
+                          disabled={updatingOrderId === order.id}
+                          onClick={async () => {
+                            setUpdatingOrderId(order.id);
+                            try {
+                              await updateOrderStatus(order.id, 'cancelled');
+                              showToast('Order Rejected', `${order.orderNumber} cancelled`, 'warn');
+                            } finally {
+                              setUpdatingOrderId(null);
+                            }
+                          }}
+                          className="px-3 py-2 rounded-xl border border-stone-300 hover:bg-rose-50 hover:text-rose-700 text-stone-600 text-xs font-bold transition cursor-pointer disabled:opacity-50"
                         >
                           REJECT
                         </button>
@@ -428,14 +452,26 @@ export const OrdersManager: React.FC = () => {
                       <button
                         id={`btn-start-prep-${order.id}`}
                         type="button"
-                        onClick={() => {
-                          updateOrderStatus(order.id, 'preparing');
-                          showToast('Sent to Kitchen', `${order.orderNumber} is now preparing`, 'info');
+                        disabled={updatingOrderId === order.id}
+                        onClick={async () => {
+                          setUpdatingOrderId(order.id);
+                          try {
+                            await updateOrderStatus(order.id, 'preparing');
+                            showToast('Sent to Kitchen', `${order.orderNumber} is now preparing`, 'info');
+                          } finally {
+                            setUpdatingOrderId(null);
+                          }
                         }}
-                        className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                        className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
                       >
-                        <ChefHat className="w-4 h-4" />
-                        <span>START PREPARING</span>
+                        {updatingOrderId === order.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <ChefHat className="w-4 h-4" />
+                            <span>START PREPARING</span>
+                          </>
+                        )}
                       </button>
                     )}
 
@@ -443,14 +479,26 @@ export const OrdersManager: React.FC = () => {
                       <button
                         id={`btn-mark-ready-${order.id}`}
                         type="button"
-                        onClick={() => {
-                          updateOrderStatus(order.id, 'ready');
-                          showToast('Order Ready!', `${order.orderNumber} is ready to serve`, 'success');
+                        disabled={updatingOrderId === order.id}
+                        onClick={async () => {
+                          setUpdatingOrderId(order.id);
+                          try {
+                            await updateOrderStatus(order.id, 'ready');
+                            showToast('Order Ready!', `${order.orderNumber} is ready to serve`, 'success');
+                          } finally {
+                            setUpdatingOrderId(null);
+                          }
                         }}
-                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
                       >
-                        <Bell className="w-4 h-4" />
-                        <span>MARK READY TO SERVE</span>
+                        {updatingOrderId === order.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Bell className="w-4 h-4" />
+                            <span>MARK READY TO SERVE</span>
+                          </>
+                        )}
                       </button>
                     )}
 
@@ -458,14 +506,26 @@ export const OrdersManager: React.FC = () => {
                       <button
                         id={`btn-mark-served-${order.id}`}
                         type="button"
-                        onClick={() => {
-                          updateOrderStatus(order.id, 'served');
-                          showToast('Order Served', `Delivered to Table ${order.tableNumber}`, 'info');
+                        disabled={updatingOrderId === order.id}
+                        onClick={async () => {
+                          setUpdatingOrderId(order.id);
+                          try {
+                            await updateOrderStatus(order.id, 'served');
+                            showToast('Order Served', `Delivered to Table ${order.tableNumber}`, 'info');
+                          } finally {
+                            setUpdatingOrderId(null);
+                          }
                         }}
-                        className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                        className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
                       >
-                        <Sparkles className="w-4 h-4" />
-                        <span>MARK AS SERVED</span>
+                        {updatingOrderId === order.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>MARK AS SERVED</span>
+                          </>
+                        )}
                       </button>
                     )}
 

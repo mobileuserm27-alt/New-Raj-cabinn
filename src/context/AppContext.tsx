@@ -860,7 +860,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!restaurant) return;
     await api.submitWaiterRequest(restaurant.id, activeTableNumber, requestType, note);
     setIsCallWaiterOpen(false);
-    setIsBillRequestOpen(false);
     playNotificationChime('waiter');
     showToast('Request Sent', t.waiterDispatched, 'success');
   };

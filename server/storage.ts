@@ -63,6 +63,16 @@ class RestaurantStore {
         if (Array.isArray(data.staff) && data.staff.length > 0) this.staff = data.staff;
         if (Array.isArray(data.subscriptions) && data.subscriptions.length > 0) this.subscriptions = data.subscriptions;
         if (typeof data.orderCounter === 'number') this.orderCounter = data.orderCounter;
+        
+        // Ensure orderCounter is at least the highest order number
+        const existingOrderNums = this.orders.map(o => {
+          const m = (o.orderNumber || '').match(/\d+/);
+          return m ? parseInt(m[0], 10) : 10300;
+        });
+        if (existingOrderNums.length > 0) {
+          this.orderCounter = Math.max(this.orderCounter, ...existingOrderNums);
+        }
+
         console.log(`[Storage] Loaded persistent state (${this.tables.length} tables, ${this.menuItems.length} menu items) from disk.`);
       } else {
         this.saveToDisk();
@@ -423,7 +433,7 @@ class RestaurantStore {
     const grandTotal = subtotal;
 
     this.orderCounter += 1;
-    const orderNumber = `#RC${this.orderCounter}`;
+    const orderNumber = `#RC-${this.orderCounter}`;
 
     const newOrder: Order = {
       id: `ord_${Date.now()}`,
@@ -466,7 +476,10 @@ class RestaurantStore {
   }
 
   public updateOrderStatus(orderId: string, status: OrderStatus): Order | null {
-    const idx = this.orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+    let idx = this.orders.findIndex(o => o.id === orderId);
+    if (idx === -1) {
+      idx = this.orders.findIndex(o => o.orderNumber === orderId);
+    }
     if (idx === -1) return null;
     this.orders[idx].status = status;
     this.orders[idx].updatedAt = new Date().toISOString();
@@ -478,7 +491,10 @@ class RestaurantStore {
   }
 
   public updateOrderPayment(orderId: string, paymentStatus: PaymentStatus, method?: string): Order | null {
-    const idx = this.orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+    let idx = this.orders.findIndex(o => o.id === orderId);
+    if (idx === -1) {
+      idx = this.orders.findIndex(o => o.orderNumber === orderId);
+    }
     if (idx === -1) return null;
     this.orders[idx].paymentStatus = paymentStatus;
     if (method) this.orders[idx].paymentMethod = method as any;
@@ -491,7 +507,10 @@ class RestaurantStore {
   }
 
   public deleteOrder(orderId: string): boolean {
-    const idx = this.orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+    let idx = this.orders.findIndex(o => o.id === orderId);
+    if (idx === -1) {
+      idx = this.orders.findIndex(o => o.orderNumber === orderId);
+    }
     if (idx === -1) return false;
     const order = this.orders[idx];
     const restaurantId = order.restaurantId;

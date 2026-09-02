@@ -92,6 +92,35 @@ class LocalStoreEngine {
       this.tables = [...INITIAL_TABLES];
       this.saveTables();
     }
+
+    // Determine max existing order number to guarantee strictly unique incremental IDs
+    const existingOrderNums = this.orders.map(o => {
+      const m = (o.orderNumber || '').match(/\d+/);
+      return m ? parseInt(m[0], 10) : 10300;
+    });
+    this.orderCounter = existingOrderNums.length > 0 ? Math.max(10300, ...existingOrderNums) : 10300;
+
+    // Sanitize any existing orders that accidentally share identical order numbers
+    const seenOrderNumbers = new Set<string>();
+    let changed = false;
+    let autoCounter = 10301;
+    this.orders.forEach(o => {
+      if (!o.orderNumber || seenOrderNumbers.has(o.orderNumber)) {
+        while (seenOrderNumbers.has(`#RC-${autoCounter}`)) {
+          autoCounter++;
+        }
+        o.orderNumber = `#RC-${autoCounter}`;
+        seenOrderNumbers.add(o.orderNumber);
+        autoCounter++;
+        changed = true;
+      } else {
+        seenOrderNumbers.add(o.orderNumber);
+      }
+    });
+    if (changed) {
+      this.orderCounter = Math.max(this.orderCounter, autoCounter);
+      this.saveOrders();
+    }
   }
 
   private saveRestaurants() { setItem(STORAGE_KEYS.RESTAURANTS, this.restaurants); }
@@ -347,9 +376,12 @@ class LocalStoreEngine {
       };
     });
 
+    this.orderCounter += 1;
+    const orderNumber = `#RC-${this.orderCounter}`;
+
     const newOrder: Order = {
       id: `ord_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      orderNumber: `#RC-${this.orderCounter}`,
+      orderNumber,
       restaurantId: data.restaurantId || 'rest_raj_001',
       tableId: `tbl_${data.tableNumber}`,
       tableNumber: data.tableNumber,
@@ -385,7 +417,10 @@ class LocalStoreEngine {
   }
 
   updateOrderStatus(orderId: string, status: OrderStatus): Order | null {
-    const idx = this.orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+    let idx = this.orders.findIndex(o => o.id === orderId);
+    if (idx === -1) {
+      idx = this.orders.findIndex(o => o.orderNumber === orderId);
+    }
     if (idx === -1) return null;
     this.orders[idx].status = status;
     this.orders[idx].updatedAt = new Date().toISOString();
@@ -394,7 +429,10 @@ class LocalStoreEngine {
   }
 
   updateOrderPayment(orderId: string, paymentStatus: PaymentStatus, paymentMethod?: string): Order | null {
-    const idx = this.orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+    let idx = this.orders.findIndex(o => o.id === orderId);
+    if (idx === -1) {
+      idx = this.orders.findIndex(o => o.orderNumber === orderId);
+    }
     if (idx === -1) return null;
     this.orders[idx].paymentStatus = paymentStatus;
     if (paymentMethod) {
@@ -407,7 +445,10 @@ class LocalStoreEngine {
 
   deleteOrder(orderId: string): boolean {
     const initialLen = this.orders.length;
-    this.orders = this.orders.filter(o => o.id !== orderId && o.orderNumber !== orderId);
+    this.orders = this.orders.filter(o => o.id !== orderId);
+    if (this.orders.length === initialLen) {
+      this.orders = this.orders.filter(o => o.orderNumber !== orderId);
+    }
     this.saveOrders();
     return this.orders.length < initialLen;
   }
