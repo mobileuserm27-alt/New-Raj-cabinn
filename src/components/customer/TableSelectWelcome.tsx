@@ -584,15 +584,17 @@ export const TableSelectWelcome: React.FC = () => {
             </button>
             <div className="rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 flex flex-col max-h-[80vh]">
               <img
-                src={APP_IMAGES.rajCabinBuilding}
-                alt="New Raj Cabin Grand Restaurant Building"
+                src={restaurant?.branding.coverImageUrl || APP_IMAGES.rajCabinBuilding}
+                alt={restaurant?.name || 'Restaurant Cover Banner'}
                 className="w-full h-full object-contain max-h-[70vh] select-none"
                 referrerPolicy="no-referrer"
               />
               <div className="p-4 bg-stone-900/90 border-t border-stone-800 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-extrabold text-white text-base">New Raj Cabin</h3>
-                  <p className="text-xs text-stone-400">Multi-Cuisine Restaurant, Rooftop Dining & Banquet Hall • Naihati</p>
+                  <h3 className="font-extrabold text-white text-base">{restaurant?.name || 'New Raj Cabin'}</h3>
+                  <p className="text-xs text-stone-400">
+                    {restaurant?.branding.tagline || (restaurant?.address ? `${restaurant.address}, ${restaurant.city}` : 'Multi-Cuisine Restaurant & Rooftop Dining')}
+                  </p>
                 </div>
                 <button
                   type="button"
