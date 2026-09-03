@@ -36,9 +36,87 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "restaurantId", "tableNumber", "requestType", "status"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Menu item / dish for the restaurant menu",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "name": { "type": "string" },
+        "hindiName": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "dietType": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "isPopular": { "type": "boolean" },
+        "isChefSpecial": { "type": "boolean" }
+      },
+      "required": ["id", "restaurantId", "name", "price"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Food category for menu organization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "name": { "type": "string" },
+        "hindiName": { "type": "string" },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    },
+    "TableInfo": {
+      "title": "TableInfo",
+      "description": "Dining table configuration and QR assignments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "tableNumber": { "type": "string" },
+        "capacity": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "tableNumber"]
+    },
+    "Restaurant": {
+      "title": "Restaurant",
+      "description": "Official restaurant profile, branding, logo and cover photo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "branding": { "type": "object" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "phone": { "type": "string" },
+        "isOpen": { "type": "boolean" }
+      },
+      "required": ["id", "name"]
     }
   },
   "firestore": {
+    "/restaurants/{restaurantId}": {
+      "schema": "Restaurant",
+      "description": "Restaurant profile, branding, logo and cover photos"
+    },
+    "/menu_items/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Live collection of all menu items and dishes"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Live collection of food menu categories"
+    },
+    "/tables/{tableId}": {
+      "schema": "TableInfo",
+      "description": "Live collection of restaurant dining tables"
+    },
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Collection of all live and historic restaurant orders"

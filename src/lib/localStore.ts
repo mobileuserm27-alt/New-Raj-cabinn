@@ -79,6 +79,33 @@ class LocalStoreEngine {
     if (!this.restaurants || this.restaurants.length === 0 || !this.restaurants.some(r => r.slug === 'raj-cabin')) {
       this.restaurants = [...INITIAL_RESTAURANTS];
       this.saveRestaurants();
+    } else {
+      // Preserve restaurant branding and any custom name set by admin (e.g. New-Raj-Cabin)
+      const raj = this.restaurants.find(r => r.id === 'rest_raj_001' || r.slug === 'raj-cabin');
+      if (raj) {
+        let updated = false;
+        if (!raj.name) {
+          raj.name = 'New-Raj-Cabin';
+          updated = true;
+        }
+        if (!raj.branding?.coverImageUrl) {
+          raj.branding = {
+            ...raj.branding,
+            coverImageUrl: '/images/raj-cabin-grand-facade.jpg'
+          };
+          updated = true;
+        }
+        if (!raj.branding?.logoUrl) {
+          raj.branding = {
+            ...raj.branding,
+            logoUrl: '/images/raj-cabin-logo.jpg'
+          };
+          updated = true;
+        }
+        if (updated) {
+          this.saveRestaurants();
+        }
+      }
     }
     if (!this.categories || this.categories.length === 0) {
       this.categories = [...INITIAL_CATEGORIES];
@@ -91,6 +118,17 @@ class LocalStoreEngine {
     if (!this.tables || this.tables.length === 0) {
       this.tables = [...INITIAL_TABLES];
       this.saveTables();
+    }
+
+    // Purge old (>12 hrs) local orders so they don't lock tables across devices
+    const now = Date.now();
+    const freshOrders = this.orders.filter(o => {
+      const ageHours = o.createdAt ? (now - new Date(o.createdAt).getTime()) / 3600000 : 999;
+      return ageHours < 12;
+    });
+    if (freshOrders.length !== this.orders.length) {
+      this.orders = freshOrders;
+      this.saveOrders();
     }
 
     // Determine max existing order number to guarantee strictly unique incremental IDs
@@ -329,6 +367,21 @@ class LocalStoreEngine {
     this.tables = this.tables.filter(t => t.id !== tableId && t.tableNumber !== tableId);
     this.saveTables();
     return this.tables.length < initialLen;
+  }
+
+  setAllMenuItems(items: MenuItem[]) {
+    this.menuItems = items;
+    this.saveMenuItems();
+  }
+
+  setAllCategories(categories: Category[]) {
+    this.categories = categories;
+    this.saveCategories();
+  }
+
+  setAllTables(tables: TableInfo[]) {
+    this.tables = tables;
+    this.saveTables();
   }
 
   // --- ORDERS ---

@@ -11,6 +11,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -18,13 +19,24 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Order, WaiterRequest } from '../types';
+import { Category, MenuItem, Order, Restaurant, TableInfo, WaiterRequest } from '../types';
 
 export type CloudSyncEvent =
   | { type: 'new_order'; order: Order; isInitial?: boolean }
+  | { type: 'orders_snapshot'; orders: Order[] }
   | { type: 'order_status_updated'; order: Order }
   | { type: 'order_deleted'; orderId: string }
   | { type: 'orders_cleared'; restaurantId: string }
+  | { type: 'restaurant_updated'; restaurant: Restaurant }
+  | { type: 'menu_items_snapshot'; items: MenuItem[] }
+  | { type: 'menu_item_updated'; item: MenuItem }
+  | { type: 'menu_item_deleted'; itemId: string }
+  | { type: 'categories_snapshot'; categories: Category[] }
+  | { type: 'category_updated'; category: Category }
+  | { type: 'category_deleted'; categoryId: string }
+  | { type: 'tables_snapshot'; tables: TableInfo[] }
+  | { type: 'table_updated'; table: TableInfo }
+  | { type: 'table_deleted'; tableId: string }
   | { type: 'new_waiter_request'; request: WaiterRequest; isInitial?: boolean }
   | { type: 'waiter_request_updated'; request: WaiterRequest }
   | { type: 'waiter_requests_cleared'; restaurantId: string };
@@ -100,6 +112,10 @@ function sanitizeForFirestore<T>(data: T): T {
 
 let ordersUnsubscribe: Unsubscribe | null = null;
 let waiterUnsubscribe: Unsubscribe | null = null;
+let restaurantUnsubscribe: Unsubscribe | null = null;
+let menuUnsubscribe: Unsubscribe | null = null;
+let categoriesUnsubscribe: Unsubscribe | null = null;
+let tablesUnsubscribe: Unsubscribe | null = null;
 let activeRestaurantId: string = '';
 
 export const cloudSync = {
@@ -121,7 +137,7 @@ export const cloudSync = {
   },
 
   /**
-   * Start real-time Firestore listener for orders & waiter requests.
+   * Start real-time Firestore listener for restaurant profile, menu items, categories, tables, orders & waiter requests.
    * Runs natively via WebSockets/HTTP2 on port 443 with sub-second latency.
    */
   startRealtimeListener(restaurantId: string = 'rest_raj_001') {
@@ -139,8 +155,37 @@ export const cloudSync = {
       waiterUnsubscribe();
       waiterUnsubscribe = null;
     }
+    if (restaurantUnsubscribe) {
+      restaurantUnsubscribe();
+      restaurantUnsubscribe = null;
+    }
+    if (menuUnsubscribe) {
+      menuUnsubscribe();
+      menuUnsubscribe = null;
+    }
+    if (categoriesUnsubscribe) {
+      categoriesUnsubscribe();
+      categoriesUnsubscribe = null;
+    }
+    if (tablesUnsubscribe) {
+      tablesUnsubscribe();
+      tablesUnsubscribe = null;
+    }
 
     try {
+      // 0. Listen to Restaurant Document in real-time
+      const restDocRef = doc(db, 'restaurants', restaurantId);
+      restaurantUnsubscribe = onSnapshot(restDocRef, (snap) => {
+        if (snap.exists()) {
+          const restData = snap.data() as Restaurant;
+          if (restData && restData.name) {
+            listeners.forEach(fn => fn({ type: 'restaurant_updated', restaurant: restData }));
+          }
+        }
+      }, (err) => {
+        console.warn('Firestore restaurant listener error:', err);
+      });
+
       // 1. Listen to Orders Collection
       const ordersCol = collection(db, 'orders');
       let isOrdersInitial = true;
@@ -148,7 +193,6 @@ export const cloudSync = {
       ordersUnsubscribe = onSnapshot(ordersCol, (snapshot) => {
         if (isOrdersInitial) {
           isOrdersInitial = false;
-          // Initial load: collect all orders, cache them and notify with isInitial: true
           const initialOrders: Order[] = [];
           snapshot.forEach(docSnap => {
             const data = docSnap.data() as Order;
@@ -157,23 +201,16 @@ export const cloudSync = {
             }
           });
 
-          // Cache in local storage for instant offline loading
-          if (initialOrders.length > 0) {
-            try {
-              localStorage.setItem('snd_cloud_cached_orders_v4', JSON.stringify(initialOrders));
-            } catch (e) {
-              // ignore
-            }
+          try {
+            localStorage.setItem('snd_cloud_cached_orders_v4', JSON.stringify(initialOrders));
+          } catch (e) {
+            // ignore
           }
 
-          // Notify listeners without ringing audio chimes
-          initialOrders.forEach(order => {
-            listeners.forEach(fn => fn({ type: 'new_order', order, isInitial: true }));
-          });
+          listeners.forEach(fn => fn({ type: 'orders_snapshot', orders: initialOrders }));
           return;
         }
 
-        // Handle live delta changes from other phones / devices
         snapshot.docChanges().forEach(change => {
           const orderData = change.doc.data() as Order;
           if (!orderData || !orderData.id) return;
@@ -221,6 +258,109 @@ export const cloudSync = {
         });
       }, (err) => {
         console.warn('Firestore waiter listener error:', err);
+      });
+
+      // 3. Listen to Menu Items Collection in real-time
+      const menuCol = collection(db, 'menu_items');
+      let isMenuInitial = true;
+
+      menuUnsubscribe = onSnapshot(menuCol, (snapshot) => {
+        if (isMenuInitial) {
+          isMenuInitial = false;
+          const items: MenuItem[] = [];
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data() as MenuItem;
+            if (data && data.id) {
+              items.push(data);
+            }
+          });
+          if (items.length > 0) {
+            listeners.forEach(fn => fn({ type: 'menu_items_snapshot', items }));
+          }
+          return;
+        }
+
+        snapshot.docChanges().forEach(change => {
+          const itemData = change.doc.data() as MenuItem;
+          if (change.type === 'added' || change.type === 'modified') {
+            if (itemData && itemData.id) {
+              listeners.forEach(fn => fn({ type: 'menu_item_updated', item: itemData }));
+            }
+          } else if (change.type === 'removed') {
+            listeners.forEach(fn => fn({ type: 'menu_item_deleted', itemId: change.doc.id }));
+          }
+        });
+      }, (err) => {
+        console.warn('Firestore menu items listener error:', err);
+      });
+
+      // 4. Listen to Categories Collection in real-time
+      const catCol = collection(db, 'categories');
+      let isCatInitial = true;
+
+      categoriesUnsubscribe = onSnapshot(catCol, (snapshot) => {
+        if (isCatInitial) {
+          isCatInitial = false;
+          const categories: Category[] = [];
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data() as Category;
+            if (data && data.id) {
+              categories.push(data);
+            }
+          });
+          if (categories.length > 0) {
+            categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            listeners.forEach(fn => fn({ type: 'categories_snapshot', categories }));
+          }
+          return;
+        }
+
+        snapshot.docChanges().forEach(change => {
+          const catData = change.doc.data() as Category;
+          if (change.type === 'added' || change.type === 'modified') {
+            if (catData && catData.id) {
+              listeners.forEach(fn => fn({ type: 'category_updated', category: catData }));
+            }
+          } else if (change.type === 'removed') {
+            listeners.forEach(fn => fn({ type: 'category_deleted', categoryId: change.doc.id }));
+          }
+        });
+      }, (err) => {
+        console.warn('Firestore categories listener error:', err);
+      });
+
+      // 5. Listen to Tables Collection in real-time
+      const tableCol = collection(db, 'tables');
+      let isTableInitial = true;
+
+      tablesUnsubscribe = onSnapshot(tableCol, (snapshot) => {
+        if (isTableInitial) {
+          isTableInitial = false;
+          const tables: TableInfo[] = [];
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data() as TableInfo;
+            if (data && data.id) {
+              tables.push(data);
+            }
+          });
+          if (tables.length > 0) {
+            listeners.forEach(fn => fn({ type: 'tables_snapshot', tables }));
+          }
+          return;
+        }
+
+        snapshot.docChanges().forEach(change => {
+          const tableData = change.doc.data() as TableInfo;
+          if (change.type === 'added' || change.type === 'modified') {
+            if (tableData && tableData.id) {
+              listeners.forEach(fn => fn({ type: 'table_updated', table: tableData }));
+            }
+          } else if (change.type === 'removed') {
+            listeners.forEach(fn => fn({ type: 'table_deleted', tableId: change.doc.id }));
+          }
+        });
+      }, (err) => {
+        console.warn('Firestore tables listener error:', err);
       });
 
     } catch (e) {
@@ -325,7 +465,7 @@ export const cloudSync = {
   /**
    * Pull active orders from Firestore.
    */
-  async pullCloudOrders(restaurantId: string): Promise<{ orders: Order[]; deletedIds: Set<string>; cleared: boolean }> {
+  async pullCloudOrders(restaurantId: string): Promise<{ orders: Order[]; deletedIds: Set<string>; cleared: boolean; isCloudConnected: boolean }> {
     try {
       const snap = await getDocs(collection(db, 'orders'));
       const orders: Order[] = [];
@@ -338,14 +478,16 @@ export const cloudSync = {
       return {
         orders,
         deletedIds: new Set<string>(),
-        cleared: false
+        cleared: false,
+        isCloudConnected: true
       };
     } catch (e) {
       const cached = getCachedOrders();
       return {
         orders: cached,
         deletedIds: new Set<string>(),
-        cleared: false
+        cleared: false,
+        isCloudConnected: false
       };
     }
   },
@@ -365,6 +507,172 @@ export const cloudSync = {
       });
       return requests;
     } catch (e) {
+      return [];
+    }
+  },
+
+  /**
+   * Sync restaurant profile & branding to Firestore.
+   * Broadcasts to all connected devices in real time so branding/photos stay 100% synchronized.
+   */
+  async syncRestaurantToCloud(restaurant: Restaurant): Promise<void> {
+    this.broadcastLocal({ type: 'restaurant_updated', restaurant });
+    try {
+      const clean = sanitizeForFirestore(restaurant);
+      await setDoc(doc(db, 'restaurants', restaurant.id), clean, { merge: true });
+    } catch (err) {
+      console.error('Failed to sync restaurant to Firestore:', err);
+    }
+  },
+
+  /**
+   * Pull official canonical restaurant profile from Firestore.
+   */
+  async pullCloudRestaurant(restaurantId: string = 'rest_raj_001'): Promise<Restaurant | null> {
+    try {
+      const snap = await getDoc(doc(db, 'restaurants', restaurantId));
+      if (snap.exists()) {
+        return snap.data() as Restaurant;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to pull restaurant from cloud:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Sync a menu item (dish) to Firestore in real time.
+   */
+  async syncMenuItemToCloud(item: MenuItem): Promise<void> {
+    this.broadcastLocal({ type: 'menu_item_updated', item });
+    try {
+      const clean = sanitizeForFirestore(item);
+      await setDoc(doc(db, 'menu_items', item.id), clean, { merge: true });
+    } catch (err) {
+      console.error('Failed to sync menu item to Firestore:', err);
+    }
+  },
+
+  /**
+   * Delete a menu item from Firestore in real time.
+   */
+  async deleteMenuItemFromCloud(itemId: string): Promise<void> {
+    this.broadcastLocal({ type: 'menu_item_deleted', itemId });
+    try {
+      await deleteDoc(doc(db, 'menu_items', itemId));
+    } catch (err) {
+      console.error('Failed to delete menu item from Firestore:', err);
+    }
+  },
+
+  /**
+   * Pull all menu items from Firestore.
+   */
+  async pullCloudMenuItems(restaurantId: string = 'rest_raj_001'): Promise<MenuItem[]> {
+    try {
+      const snap = await getDocs(collection(db, 'menu_items'));
+      const items: MenuItem[] = [];
+      snap.forEach(d => {
+        const data = d.data() as MenuItem;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      return items;
+    } catch (e) {
+      console.warn('Failed to pull menu items from cloud:', e);
+      return [];
+    }
+  },
+
+  /**
+   * Sync a food category to Firestore in real time.
+   */
+  async syncCategoryToCloud(category: Category): Promise<void> {
+    this.broadcastLocal({ type: 'category_updated', category });
+    try {
+      const clean = sanitizeForFirestore(category);
+      await setDoc(doc(db, 'categories', category.id), clean, { merge: true });
+    } catch (err) {
+      console.error('Failed to sync category to Firestore:', err);
+    }
+  },
+
+  /**
+   * Delete a food category from Firestore in real time.
+   */
+  async deleteCategoryFromCloud(categoryId: string): Promise<void> {
+    this.broadcastLocal({ type: 'category_deleted', categoryId });
+    try {
+      await deleteDoc(doc(db, 'categories', categoryId));
+    } catch (err) {
+      console.error('Failed to delete category from Firestore:', err);
+    }
+  },
+
+  /**
+   * Pull all food categories from Firestore.
+   */
+  async pullCloudCategories(restaurantId: string = 'rest_raj_001'): Promise<Category[]> {
+    try {
+      const snap = await getDocs(collection(db, 'categories'));
+      const cats: Category[] = [];
+      snap.forEach(d => {
+        const data = d.data() as Category;
+        if (data && data.id) {
+          cats.push(data);
+        }
+      });
+      cats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      return cats;
+    } catch (e) {
+      console.warn('Failed to pull categories from cloud:', e);
+      return [];
+    }
+  },
+
+  /**
+   * Sync a dining table to Firestore in real time.
+   */
+  async syncTableToCloud(table: TableInfo): Promise<void> {
+    this.broadcastLocal({ type: 'table_updated', table });
+    try {
+      const clean = sanitizeForFirestore(table);
+      await setDoc(doc(db, 'tables', table.id), clean, { merge: true });
+    } catch (err) {
+      console.error('Failed to sync table to Firestore:', err);
+    }
+  },
+
+  /**
+   * Delete a dining table from Firestore in real time.
+   */
+  async deleteTableFromCloud(tableId: string): Promise<void> {
+    this.broadcastLocal({ type: 'table_deleted', tableId });
+    try {
+      await deleteDoc(doc(db, 'tables', tableId));
+    } catch (err) {
+      console.error('Failed to delete table from Firestore:', err);
+    }
+  },
+
+  /**
+   * Pull all dining tables from Firestore.
+   */
+  async pullCloudTables(restaurantId: string = 'rest_raj_001'): Promise<TableInfo[]> {
+    try {
+      const snap = await getDocs(collection(db, 'tables'));
+      const tbls: TableInfo[] = [];
+      snap.forEach(d => {
+        const data = d.data() as TableInfo;
+        if (data && data.id) {
+          tbls.push(data);
+        }
+      });
+      return tbls;
+    } catch (e) {
+      console.warn('Failed to pull tables from cloud:', e);
       return [];
     }
   }

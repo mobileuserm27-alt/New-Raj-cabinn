@@ -126,7 +126,18 @@ export const api = {
     return list;
   },
 
-  async getRestaurant(slugOrId: string): Promise<Restaurant> {
+  async getRestaurant(slugOrId: string = 'raj-cabin'): Promise<Restaurant> {
+    // Priority 1: Pull authoritative restaurant profile from Firestore cloud
+    try {
+      const cloudRest = await cloudSync.pullCloudRestaurant('rest_raj_001');
+      if (cloudRest && cloudRest.name) {
+        localStore.updateRestaurant(cloudRest.id, cloudRest);
+        return cloudRest;
+      }
+    } catch (e) {
+      // fallback
+    }
+
     return safeFetch(
       () => fetch(`${API_BASE}/restaurants/${encodeURIComponent(slugOrId)}`),
       () => {
@@ -142,7 +153,7 @@ export const api = {
   },
 
   async createRestaurant(data: Partial<Restaurant>): Promise<Restaurant> {
-    return safeFetch(
+    const created = await safeFetch(
       () => fetch(`${API_BASE}/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,10 +161,14 @@ export const api = {
       }),
       () => localStore.createRestaurant(data)
     );
+    if (created) {
+      await cloudSync.syncRestaurantToCloud(created);
+    }
+    return created;
   },
 
   async updateRestaurant(id: string, data: Partial<Restaurant>): Promise<Restaurant> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -164,6 +179,10 @@ export const api = {
         return u || (localStore.getAllRestaurants()[0]);
       }
     );
+    if (updated) {
+      await cloudSync.syncRestaurantToCloud(updated);
+    }
+    return updated;
   },
 
   async toggleSuspendRestaurant(id: string): Promise<Restaurant> {
@@ -178,6 +197,16 @@ export const api = {
 
   // Categories
   async getCategories(restaurantId: string): Promise<Category[]> {
+    try {
+      const cloudCats = await cloudSync.pullCloudCategories(restaurantId);
+      if (cloudCats && cloudCats.length > 0) {
+        localStore.setAllCategories(cloudCats);
+        return cloudCats;
+      }
+    } catch (e) {
+      // fallback
+    }
+
     const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/categories`),
       () => localStore.getCategories(restaurantId)
@@ -189,7 +218,7 @@ export const api = {
   },
 
   async createCategory(restaurantId: string, name: string, hindiName?: string): Promise<Category> {
-    return safeFetch(
+    const created = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,10 +226,14 @@ export const api = {
       }),
       () => localStore.createCategory(restaurantId, name, hindiName)
     );
+    if (created) {
+      await cloudSync.syncCategoryToCloud(created);
+    }
+    return created;
   },
 
   async updateCategory(catId: string, data: Partial<Category>): Promise<Category> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/categories/${catId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -212,20 +245,38 @@ export const api = {
         return c;
       }
     );
+    if (updated) {
+      await cloudSync.syncCategoryToCloud(updated);
+    }
+    return updated;
   },
 
   async deleteCategory(catId: string): Promise<boolean> {
-    return safeFetch(
+    const ok = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/categories/${catId}`, { method: 'DELETE' });
         return res.ok ? new Response(JSON.stringify(true), { headers: { 'content-type': 'application/json' } }) : res;
       },
       () => localStore.deleteCategory(catId)
     );
+    if (ok) {
+      await cloudSync.deleteCategoryFromCloud(catId);
+    }
+    return ok;
   },
 
   // Menu Items
   async getMenuItems(restaurantId: string): Promise<MenuItem[]> {
+    try {
+      const cloudItems = await cloudSync.pullCloudMenuItems(restaurantId);
+      if (cloudItems && cloudItems.length > 0) {
+        localStore.setAllMenuItems(cloudItems);
+        return cloudItems;
+      }
+    } catch (e) {
+      // fallback
+    }
+
     const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/menu`),
       () => localStore.getMenuItems(restaurantId)
@@ -237,7 +288,7 @@ export const api = {
   },
 
   async createMenuItem(restaurantId: string, itemData: Partial<MenuItem>): Promise<MenuItem> {
-    return safeFetch(
+    const created = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/menu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,10 +296,14 @@ export const api = {
       }),
       () => localStore.createMenuItem(restaurantId, itemData)
     );
+    if (created) {
+      await cloudSync.syncMenuItemToCloud(created);
+    }
+    return created;
   },
 
   async updateMenuItem(itemId: string, itemData: Partial<MenuItem>): Promise<MenuItem> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/menu/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -260,20 +315,38 @@ export const api = {
         return m;
       }
     );
+    if (updated) {
+      await cloudSync.syncMenuItemToCloud(updated);
+    }
+    return updated;
   },
 
   async deleteMenuItem(itemId: string): Promise<boolean> {
-    return safeFetch(
+    const ok = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/menu/${itemId}`, { method: 'DELETE' });
         return res.ok ? new Response(JSON.stringify(true), { headers: { 'content-type': 'application/json' } }) : res;
       },
       () => localStore.deleteMenuItem(itemId)
     );
+    if (ok) {
+      await cloudSync.deleteMenuItemFromCloud(itemId);
+    }
+    return ok;
   },
 
   // Tables
   async getTables(restaurantId: string): Promise<TableInfo[]> {
+    try {
+      const cloudTables = await cloudSync.pullCloudTables(restaurantId);
+      if (cloudTables && cloudTables.length > 0) {
+        localStore.setAllTables(cloudTables);
+        return cloudTables;
+      }
+    } catch (e) {
+      // fallback
+    }
+
     const list = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/tables`),
       () => localStore.getTables(restaurantId)
@@ -285,7 +358,7 @@ export const api = {
   },
 
   async createTable(restaurantId: string, tableNumber: string, capacity: number = 4): Promise<TableInfo> {
-    return safeFetch(
+    const created = await safeFetch(
       () => fetch(`${API_BASE}/restaurants/${restaurantId}/tables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -293,10 +366,14 @@ export const api = {
       }),
       () => localStore.createTable(restaurantId, tableNumber, capacity)
     );
+    if (created) {
+      await cloudSync.syncTableToCloud(created);
+    }
+    return created;
   },
 
   async updateTable(tableId: string, data: Partial<TableInfo>): Promise<TableInfo> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/tables/${tableId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -308,16 +385,24 @@ export const api = {
         return t;
       }
     );
+    if (updated) {
+      await cloudSync.syncTableToCloud(updated);
+    }
+    return updated;
   },
 
   async deleteTable(tableId: string): Promise<boolean> {
-    return safeFetch(
+    const ok = await safeFetch(
       async () => {
         const res = await fetch(`${API_BASE}/tables/${tableId}`, { method: 'DELETE' });
         return res.ok ? new Response(JSON.stringify(true), { headers: { 'content-type': 'application/json' } }) : res;
       },
       () => localStore.deleteTable(tableId)
     );
+    if (ok) {
+      await cloudSync.deleteTableFromCloud(tableId);
+    }
+    return ok;
   },
 
   // Orders

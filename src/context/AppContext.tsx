@@ -464,27 +464,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           api.getOrders(currentRest.id),
           api.getWaiterRequests(currentRest.id),
           api.getStaff(currentRest.id),
-          cloudSync.pullCloudOrders(currentRest.id).catch(() => ({ orders: [] as Order[], deletedIds: new Set<string>(), cleared: false })),
+          cloudSync.pullCloudOrders(currentRest.id).catch(() => ({ orders: [] as Order[], deletedIds: new Set<string>(), cleared: false, isCloudConnected: false })),
           cloudSync.pullCloudWaiterRequests(currentRest.id).catch(() => [] as WaiterRequest[])
         ]);
 
-        // Merge orders from local/server + cloud
-        const orderMap = new Map<string, Order>();
-        if (!cloudRes.cleared) {
-          ords.forEach(o => {
-            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
-              orderMap.set(o.id, o);
-            }
-          });
-          cloudRes.orders.forEach(o => {
-            if (!cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber)) {
-              orderMap.set(o.id, o);
-            }
+        // When online, Firestore cloud orders (cloudRes.orders) are the absolute single source of truth across all devices!
+        // Stale local orders from localStore must NOT cause cross-device desync or phantom busy tables.
+        let mergedOrders: Order[] = [];
+        if (cloudRes.isCloudConnected) {
+          // Authoritative cloud state: exactly what is in Firestore is what displays across all devices!
+          mergedOrders = cloudRes.orders;
+          try {
+            localStorage.setItem('snd_offline_orders', JSON.stringify(cloudRes.orders));
+          } catch (e) {
+            // ignore
+          }
+        } else if (!cloudRes.cleared) {
+          // Offline fallback only: filter out orders older than 12 hours
+          const now = Date.now();
+          mergedOrders = ords.filter(o => {
+            const ageHours = o.createdAt ? (now - new Date(o.createdAt).getTime()) / 3600000 : 999;
+            return ageHours < 12 && !cloudRes.deletedIds.has(o.id) && !cloudRes.deletedIds.has(o.orderNumber);
           });
         }
-        const mergedOrders = Array.from(orderMap.values()).sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        mergedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         const finalCats = (cats && cats.length > 0) ? cats : INITIAL_CATEGORIES;
         const finalItems = (items && items.length > 0) ? items : INITIAL_MENU_ITEMS;
@@ -542,7 +545,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // 1. Listen to cross-device cloud sync and local BroadcastChannel
     const unsubscribeCloud = cloudSync.subscribe((event: CloudSyncEvent) => {
-      if (event.type === 'new_order') {
+      if (event.type === 'orders_snapshot') {
+        const payload = event.orders;
+        setOrders(payload);
+        if (chimedOrderIdsRef.current.size === 0 && payload.length > 0) {
+          payload.forEach(o => chimedOrderIdsRef.current.add(o.id));
+        }
+      } else if (event.type === 'restaurant_updated') {
+        setRestaurant(event.restaurant);
+      } else if (event.type === 'new_order') {
         const payload = event.order;
         setOrders(prev => {
           if (prev.some(o => o.id === payload.id)) return prev;
@@ -607,6 +618,57 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       } else if (event.type === 'waiter_requests_cleared') {
         setWaiterRequests([]);
+      } else if (event.type === 'menu_items_snapshot') {
+        setMenuItems(event.items);
+        localStore.setAllMenuItems(event.items);
+      } else if (event.type === 'menu_item_updated') {
+        setMenuItems(prev => {
+          const idx = prev.findIndex(m => m.id === event.item.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = event.item;
+            return next;
+          }
+          return [...prev, event.item];
+        });
+        localStore.updateMenuItem(event.item.id, event.item);
+      } else if (event.type === 'menu_item_deleted') {
+        setMenuItems(prev => prev.filter(m => m.id !== event.itemId));
+        localStore.deleteMenuItem(event.itemId);
+      } else if (event.type === 'categories_snapshot') {
+        setCategories(event.categories);
+        localStore.setAllCategories(event.categories);
+      } else if (event.type === 'category_updated') {
+        setCategories(prev => {
+          const idx = prev.findIndex(c => c.id === event.category.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = event.category;
+            return next;
+          }
+          return [...prev, event.category];
+        });
+        localStore.updateCategory(event.category.id, event.category);
+      } else if (event.type === 'category_deleted') {
+        setCategories(prev => prev.filter(c => c.id !== event.categoryId));
+        localStore.deleteCategory(event.categoryId);
+      } else if (event.type === 'tables_snapshot') {
+        setTables(event.tables);
+        localStore.setAllTables(event.tables);
+      } else if (event.type === 'table_updated') {
+        setTables(prev => {
+          const idx = prev.findIndex(t => t.id === event.table.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = event.table;
+            return next;
+          }
+          return [...prev, event.table];
+        });
+        localStore.updateTable(event.table.id, event.table);
+      } else if (event.type === 'table_deleted') {
+        setTables(prev => prev.filter(t => t.id !== event.tableId));
+        localStore.deleteTable(event.tableId);
       }
     });
 

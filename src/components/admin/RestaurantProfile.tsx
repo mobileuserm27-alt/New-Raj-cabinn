@@ -28,7 +28,7 @@ export const RestaurantProfile: React.FC = () => {
   const [city, setCity] = useState(restaurant?.city || '');
   const [openingHours, setOpeningHours] = useState(restaurant?.openingHours || '');
   const [logoUrl, setLogoUrl] = useState(restaurant?.branding.logoUrl || '/images/raj-cabin-logo.jpg');
-  const [coverImageUrl, setCoverImageUrl] = useState(restaurant?.branding.coverImageUrl || '/images/raj-cabin-exterior.jpg');
+  const [coverImageUrl, setCoverImageUrl] = useState(restaurant?.branding.coverImageUrl || '/images/raj-cabin-grand-facade.jpg');
   const [upiId, setUpiId] = useState(restaurant?.branding.upiId || '');
   const [upiQrImageUrl, setUpiQrImageUrl] = useState(restaurant?.branding.upiQrImageUrl || '');
   const [primaryColor, setPrimaryColor] = useState(restaurant?.branding.primaryColor || '#e11d48');
@@ -55,7 +55,7 @@ export const RestaurantProfile: React.FC = () => {
 
   // Preset Cover Banner Options
   const presetBanners = [
-    { label: 'Heritage Building & Rooftop', url: '/images/raj-cabin-exterior.jpg' },
+    { label: 'Heritage Building & Rooftop', url: '/images/raj-cabin-grand-facade.jpg' },
     { label: 'Luxury Dining Hall', url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop' },
     { label: 'Rooftop Ambient Night', url: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=1200&auto=format&fit=crop' },
     { label: 'Royal Mughal Banquet', url: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&auto=format&fit=crop' },
