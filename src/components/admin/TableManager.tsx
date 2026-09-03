@@ -16,6 +16,7 @@ export const TableManager: React.FC = () => {
     openCustomerMenuForTable,
     showToast,
     getTableOccupancyDetails,
+    isTableOccupied,
     freeUpTable
   } = useApp();
 
@@ -78,6 +79,22 @@ export const TableManager: React.FC = () => {
     }
   };
 
+  const [isClearingAll, setIsClearingAll] = useState<boolean>(false);
+  const handleClearAllTables = async () => {
+    setIsClearingAll(true);
+    try {
+      const occupiedTables = tables.filter(t => isTableOccupied(t.tableNumber));
+      for (const t of occupiedTables) {
+        await freeUpTable(t.tableNumber);
+      }
+      showToast('Tables Cleared', 'All tables are now free and available', 'success');
+    } catch (err) {
+      showToast('Error', 'Failed to clear all tables', 'error');
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
   const handlePreviewQR = async (table: TableInfo) => {
     if (!restaurant) return;
     const targetUrl = `${baseUrl}/?restaurant=${restaurant.slug}&table=${table.tableNumber}`;
@@ -101,7 +118,25 @@ export const TableManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
+          {tables.filter(t => isTableOccupied(t.tableNumber)).length > 0 && (
+            <button
+              id="btn-free-all-tables"
+              type="button"
+              onClick={handleClearAllTables}
+              disabled={isClearingAll}
+              className="px-3.5 py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+              title="Free up all occupied tables at once"
+            >
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <span>
+                {isClearingAll
+                  ? 'Clearing Tables...'
+                  : `Free All Tables (${tables.filter(t => isTableOccupied(t.tableNumber)).length})`}
+              </span>
+            </button>
+          )}
+
           {restaurant && (
             <button
               id="btn-open-printable-qrs"

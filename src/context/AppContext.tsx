@@ -955,13 +955,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Real-time occupied table calculation strictly from live active un-paid orders
   const occupiedTableNumbers = React.useMemo(() => {
     const set = new Set<string>();
+    const now = Date.now();
     // From live active orders (received, accepted, preparing, ready, served) where payment is still pending
     orders.forEach(o => {
+      // If order is older than 16 hours, it is from a previous day/shift and should not lock tables today
+      const orderAgeHours = o.createdAt ? (now - new Date(o.createdAt).getTime()) / 3600000 : 0;
+      if (orderAgeHours > 16) return;
+
       if (['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) && o.paymentStatus !== 'paid') {
         if (o.tableNumber) {
-          const num = o.tableNumber.toString().replace(/^table\s*/i, '').trim();
+          const num = String(o.tableNumber).replace(/^table\s*/i, '').trim();
           if (num) set.add(num);
-          set.add(o.tableNumber);
+          set.add(String(o.tableNumber));
         }
       }
     });
@@ -970,16 +975,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const isTableOccupied = (tableNum: string): boolean => {
     if (!tableNum) return false;
-    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
-    return occupiedTableNumbers.has(clean) || occupiedTableNumbers.has(tableNum);
+    const clean = String(tableNum).replace(/^table\s*/i, '').trim();
+    return occupiedTableNumbers.has(clean) || occupiedTableNumbers.has(String(tableNum));
   };
 
   const getTableOccupancyDetails = (tableNum: string) => {
-    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
+    const clean = String(tableNum).replace(/^table\s*/i, '').trim();
+    const now = Date.now();
     const tableOrders = orders.filter(
       o => {
-        const oClean = o.tableNumber?.toString().replace(/^table\s*/i, '').trim();
-        return (o.tableNumber === tableNum || oClean === clean) &&
+        const orderAgeHours = o.createdAt ? (now - new Date(o.createdAt).getTime()) / 3600000 : 0;
+        if (orderAgeHours > 16) return false;
+        const oClean = String(o.tableNumber || '').replace(/^table\s*/i, '').trim();
+        return (String(o.tableNumber) === String(tableNum) || oClean === clean) &&
           ['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) &&
           o.paymentStatus !== 'paid';
       }
@@ -999,11 +1007,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const freeUpTable = async (tableNum: string) => {
-    const clean = tableNum.toString().replace(/^table\s*/i, '').trim();
+    const clean = String(tableNum).replace(/^table\s*/i, '').trim();
     const tableOrders = orders.filter(
-      o => (o.tableNumber === tableNum || o.tableNumber?.replace(/^table\s*/i, '').trim() === clean) &&
-        o.status !== 'cancelled' &&
-        o.paymentStatus !== 'paid'
+      o => {
+        const oClean = String(o.tableNumber || '').replace(/^table\s*/i, '').trim();
+        return (String(o.tableNumber) === String(tableNum) || oClean === clean) &&
+          o.status !== 'cancelled' &&
+          o.paymentStatus !== 'paid';
+      }
     );
 
     for (const order of tableOrders) {
@@ -1014,11 +1025,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     const targetTbl = tables.find(
-      t => t.tableNumber === tableNum || t.tableNumber.replace(/^table\s*/i, '').trim() === clean
+      t => String(t.tableNumber) === String(tableNum) || String(t.tableNumber || '').replace(/^table\s*/i, '').trim() === clean
     );
     if (targetTbl) {
       await updateTable(targetTbl.id, { status: 'available', currentOrderId: undefined });
     }
+
+    // Also update any active customerOrders for this table on this client
+    setCustomerOrders(prev => prev.map(co => {
+      const coClean = String(co.tableNumber || '').replace(/^table\s*/i, '').trim();
+      if (String(co.tableNumber) === String(tableNum) || coClean === clean) {
+        return { ...co, status: 'served', paymentStatus: 'paid' };
+      }
+      return co;
+    }));
+
     showToast(`टेबल #${tableNum} अब खाली है`, `Table #${tableNum} is now available for new guests`, 'success');
   };
 

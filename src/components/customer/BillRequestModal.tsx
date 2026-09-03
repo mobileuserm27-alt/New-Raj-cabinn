@@ -3,7 +3,7 @@ import { X, Receipt, CreditCard, Banknote, QrCode, CheckCircle2 } from 'lucide-r
 import { useApp } from '../../context/AppContext';
 
 export const BillRequestModal: React.FC = () => {
-  const { isBillRequestOpen, setIsBillRequestOpen, submitWaiterCall, activeTableNumber, restaurant, t, orders } = useApp();
+  const { isBillRequestOpen, setIsBillRequestOpen, submitWaiterCall, activeTableNumber, restaurant, t, customerOrders } = useApp();
 
   const [paymentPreference, setPaymentPreference] = useState<'upi' | 'cash' | 'card'>('upi');
   const [isSent, setIsSent] = useState(false);
@@ -13,8 +13,8 @@ export const BillRequestModal: React.FC = () => {
 
   const currency = restaurant?.branding.currencySymbol || '₹';
 
-  // Calculate table's unbilled total from orders
-  const tableOrders = orders.filter(o => o.tableNumber === activeTableNumber && o.status !== 'cancelled');
+  // Calculate customer's own order total only (protects privacy so other people's orders or totals are never exposed)
+  const tableOrders = customerOrders.filter(o => o.tableNumber === activeTableNumber && o.status !== 'cancelled');
   const currentTotal = tableOrders.reduce((sum, o) => sum + o.grandTotal, 0);
 
   const handleConfirm = async () => {

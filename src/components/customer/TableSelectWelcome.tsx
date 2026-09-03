@@ -39,7 +39,9 @@ export const TableSelectWelcome: React.FC = () => {
     showToast,
     occupiedTableNumbers,
     isTableOccupied,
-    getTableOccupancyDetails
+    getTableOccupancyDetails,
+    freeUpTable,
+    setCustomerOrders
   } = useApp();
 
   // Fallback sample tables if none loaded
@@ -482,7 +484,7 @@ export const TableSelectWelcome: React.FC = () => {
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-black text-white">
+              <h3 className="text-lg font-bold text-white">
                 {language === 'hi' ? `टेबल #${occupiedWarningTable} पहले से व्यस्त है` : `Table #${occupiedWarningTable} is Occupied`}
               </h3>
               <p className="text-xs text-stone-300 leading-relaxed">
@@ -492,28 +494,16 @@ export const TableSelectWelcome: React.FC = () => {
               </p>
             </div>
 
-            {/* Occupied table summary */}
+            {/* Occupied table summary - privacy protected (no order items, counts, or other customer's private bill) */}
             <div className="p-3.5 bg-stone-950 rounded-2xl border border-stone-800 space-y-1.5 text-xs">
               <div className="flex items-center justify-between text-stone-400">
                 <span>{language === 'hi' ? 'टेबल स्थिति:' : 'Table Status:'}</span>
                 <span className="font-bold text-amber-400">🔴 {language === 'hi' ? 'डाइनिंग चालू (Occupied)' : 'Active Dining'}</span>
               </div>
-              {occupancyDetails.customerName && (
-                <div className="flex items-center justify-between text-stone-400">
-                  <span>{language === 'hi' ? 'ग्राहक:' : 'Guest:'}</span>
-                  <span className="font-bold text-white">{occupancyDetails.customerName}</span>
-                </div>
-              )}
-              {occupancyDetails.ordersCount > 0 && (
-                <div className="flex items-center justify-between text-stone-400">
-                  <span>{language === 'hi' ? 'चालू आर्डर:' : 'Active Orders:'}</span>
-                  <span className="font-bold text-emerald-400">{occupancyDetails.ordersCount} Order(s) (₹{occupancyDetails.grandTotal})</span>
-                </div>
-              )}
             </div>
 
             {/* Smart Action Buttons */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-2">
               {/* Option 1: Pick Free Table */}
               <button
                 type="button"
@@ -532,7 +522,7 @@ export const TableSelectWelcome: React.FC = () => {
                 <CheckCircle2 className="w-4 h-4" />
                 <span>
                   {language === 'hi'
-                    ? `🟢 खाली टेबल #${firstFreeTable} चुनें (Pick Free Table)`
+                    ? `🟢 खाली टेबल #${firstFreeTable} चुनें`
                     : `🟢 Switch to Free Table #${firstFreeTable}`}
                 </span>
               </button>
@@ -541,13 +531,16 @@ export const TableSelectWelcome: React.FC = () => {
               <button
                 type="button"
                 id="btn-join-occupied-table"
-                onClick={() => proceedWithDining(occupiedWarningTable)}
+                onClick={() => {
+                  setOccupiedWarningTable(null);
+                  proceedWithDining(occupiedWarningTable);
+                }}
                 className="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Users className="w-3.5 h-3.5 text-rose-400" />
                 <span>
                   {language === 'hi'
-                    ? `👥 हम टेबल #${occupiedWarningTable} पर ही साथ बैठे हैं (Join Table)`
+                    ? `👥 हम टेबल #${occupiedWarningTable} पर ही साथ बैठे हैं (Join Tab)`
                     : `👥 I'm sitting at Table #${occupiedWarningTable} (Join Tab)`}
                 </span>
               </button>
@@ -556,7 +549,7 @@ export const TableSelectWelcome: React.FC = () => {
                 type="button"
                 id="btn-cancel-occupied-warning"
                 onClick={() => setOccupiedWarningTable(null)}
-                className="w-full py-2 text-stone-500 hover:text-stone-300 text-xs font-semibold transition"
+                className="w-full py-2 text-stone-500 hover:text-stone-300 text-xs font-semibold transition cursor-pointer"
               >
                 {language === 'hi' ? 'वापस जाएं' : 'Go Back'}
               </button>

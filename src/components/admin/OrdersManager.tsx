@@ -592,6 +592,48 @@ export const OrdersManager: React.FC = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Quick Payment Settlement Controls */}
+                    {order.status !== 'cancelled' && (
+                      <div className="pt-2 border-t border-stone-200/70 flex items-center justify-between gap-2">
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          order.paymentStatus === 'paid'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {order.paymentStatus === 'paid' ? `✓ Paid (${order.paymentMethod?.toUpperCase() || 'PAID'})` : 'Payment Pending'}
+                        </span>
+
+                        {order.paymentStatus !== 'paid' && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              id={`btn-card-pay-cash-${order.id}`}
+                              onClick={async () => {
+                                await updateOrderPayment(order.id, 'paid', 'cash');
+                                showToast('Cash Payment Recorded', `${order.orderNumber} marked as Paid`, 'success');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                              title="Mark Paid by Cash"
+                            >
+                              <span>Cash Paid</span>
+                            </button>
+                            <button
+                              type="button"
+                              id={`btn-card-pay-upi-${order.id}`}
+                              onClick={async () => {
+                                await updateOrderPayment(order.id, 'paid', 'upi');
+                                showToast('UPI Payment Recorded', `${order.orderNumber} marked as Paid`, 'success');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                              title="Mark Paid by UPI"
+                            >
+                              <span>UPI Paid</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
