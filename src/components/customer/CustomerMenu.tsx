@@ -167,7 +167,7 @@ export const CustomerMenu: React.FC = () => {
     return groups;
   }, [categories, filteredDishes, selectedCategoryId]);
 
-  const activeOrder = customerOrders[0] || null;
+  const activeOrder = customerOrders.find(o => o.status !== 'cancelled') || customerOrders[0] || null;
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 pb-28">
@@ -452,21 +452,43 @@ export const CustomerMenu: React.FC = () => {
           <div
             id="banner-active-order"
             onClick={() => setActiveOrderModal(activeOrder)}
-            className="p-3.5 rounded-2xl bg-gradient-to-r from-stone-900 to-stone-800 text-white shadow-md flex items-center justify-between cursor-pointer hover:shadow-lg transition"
+            className={`p-3.5 rounded-2xl text-white shadow-md flex items-center justify-between cursor-pointer hover:shadow-lg transition ${
+              activeOrder.status === 'cancelled'
+                ? 'bg-gradient-to-r from-stone-900 to-rose-950 border border-rose-900/60'
+                : 'bg-gradient-to-r from-stone-900 to-stone-800'
+            }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-600 flex items-center justify-center text-white shrink-0 animate-pulse">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 ${
+                  activeOrder.status === 'cancelled' ? 'bg-rose-700' : 'bg-rose-600 animate-pulse'
+                }`}
+              >
                 <UtensilsCrossed className="w-4 h-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs">{t.trackOrder}: {activeOrder.orderNumber}</span>
-                  <span className="px-1.5 py-0.2 rounded bg-rose-500/30 text-rose-300 text-[10px] font-extrabold uppercase">
+                  <span className="font-bold text-xs">
+                    {activeOrder.status === 'cancelled'
+                      ? (language === 'hi' ? 'कैंसिल हुआ ऑर्डर' : 'Cancelled Order')
+                      : t.trackOrder}: {activeOrder.orderNumber}
+                  </span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                      activeOrder.status === 'cancelled'
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-rose-500/30 text-rose-300'
+                    }`}
+                  >
                     {activeOrder.status}
                   </span>
                 </div>
                 <p className="text-[11px] text-stone-300 mt-0.5">
-                  Table #{activeOrder.tableNumber} • {activeOrder.items.length} items • Click to track status live
+                  {activeOrder.status === 'cancelled'
+                    ? (language === 'hi'
+                        ? `टेबल #${activeOrder.tableNumber} • ऑर्डर रद्द हो चुका है • देखने के लिए टैप करें`
+                        : `Table #${activeOrder.tableNumber} • Order was cancelled • Tap to view`)
+                    : `Table #${activeOrder.tableNumber} • ${activeOrder.items.length} items • Click to track status live`}
                 </p>
               </div>
             </div>

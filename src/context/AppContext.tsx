@@ -141,6 +141,7 @@ interface AppContextType {
   placeCustomerOrder: (customerName?: string, customerPhone?: string, specialNotes?: string) => Promise<Order>;
   submitWaiterCall: (requestType: 'call_waiter' | 'water' | 'bill' | 'help' | 'clean_table', note?: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  cancelCustomerOrder: (orderId: string, reason?: string) => Promise<Order>;
   updateOrderPayment: (orderId: string, paymentStatus: PaymentStatus, method?: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<boolean>;
   clearAllOrders: () => Promise<boolean>;
@@ -548,19 +549,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           return [payload, ...prev];
         });
 
-        // ONLY play kitchen chime & toast on Admin/Kitchen/Staff screens
+        // ONLY play kitchen chime & toast on Admin/Kitchen/Staff screens for newly created orders
         if (isAdminView && !chimedOrderIdsRef.current.has(payload.id)) {
           chimedOrderIdsRef.current.add(payload.id);
-          if (soundEnabled) {
-            playNotificationChime('order');
+          if (!event.isInitial) {
+            if (soundEnabled) {
+              playNotificationChime('order');
+            }
+            showToast('🔔 New Live Order!', `${payload.orderNumber} from Table #${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
           }
-          showToast('🔔 New Live Order!', `${payload.orderNumber} from Table #${payload.tableNumber} (₹${payload.grandTotal})`, 'success');
         }
       } else if (event.type === 'order_status_updated') {
         const payload = event.order;
         setOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
         setCustomerOrders(prev => prev.map(o => (o.id === payload.id ? payload : o)));
         setActiveOrderModal(prev => (prev?.id === payload.id ? payload : prev));
+
+        if (isAdminView && payload.status === 'cancelled') {
+          if (soundEnabled) {
+            playNotificationChime('waiter');
+          }
+          showToast('⚠️ Order Cancelled', `${payload.orderNumber} (Table #${payload.tableNumber}) was cancelled by customer`, 'warn');
+        }
       } else if (event.type === 'new_waiter_request') {
         const payload = event.request;
         setWaiterRequests(prev => {
@@ -570,12 +580,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (isAdminView && !chimedWaiterIdsRef.current.has(payload.id)) {
           chimedWaiterIdsRef.current.add(payload.id);
-          if (soundEnabled) {
-            playNotificationChime('waiter');
+          if (!event.isInitial) {
+            if (soundEnabled) {
+              playNotificationChime('waiter');
+            }
+            const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
+            showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
           }
-          const label = payload.requestType === 'bill' ? 'Bill Request' : payload.requestType === 'water' ? 'Water Request' : 'Waiter Call';
-          showToast(`🛎️ Table #${payload.tableNumber}: ${label}`, payload.note || 'Customer is waiting at table', 'warn');
         }
+      } else if (event.type === 'waiter_request_updated') {
+        const payload = event.request;
+        setWaiterRequests(prev => prev.map(w => (w.id === payload.id ? payload : w)));
       } else if (event.type === 'order_deleted') {
         const orderId = event.orderId;
         setOrders(prev => prev.filter(o => o.id !== orderId && o.orderNumber !== orderId));
@@ -868,6 +883,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const updated = await api.updateOrderStatus(orderId, status);
     setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+  };
+
+  const cancelCustomerOrder = async (orderId: string, reason?: string): Promise<Order> => {
+    const updated = await api.updateOrderStatus(orderId, 'cancelled');
+    setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+    setCustomerOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+    setActiveOrderModal(prev => (prev?.id === orderId ? updated : prev));
+
+    // Free table if no other active orders exist on this table
+    if (restaurant) {
+      const clean = String(updated.tableNumber).replace(/^table\s*/i, '').trim();
+      const remainingOrders = orders.filter(
+        o => o.id !== orderId &&
+             (String(o.tableNumber) === String(updated.tableNumber) || String(o.tableNumber || '').replace(/^table\s*/i, '').trim() === clean) &&
+             ['received', 'accepted', 'preparing', 'ready', 'served'].includes(o.status) &&
+             o.paymentStatus !== 'paid'
+      );
+      if (remainingOrders.length === 0) {
+        const targetTbl = tables.find(
+          t => String(t.tableNumber) === String(updated.tableNumber) || String(t.tableNumber || '').replace(/^table\s*/i, '').trim() === clean
+        );
+        if (targetTbl && targetTbl.status === 'occupied') {
+          await updateTable(targetTbl.id, { status: 'available', currentOrderId: undefined });
+        }
+      }
+    }
+
+    playNotificationChime('alert');
+    showToast(
+      language === 'hi' ? 'ऑर्डर कैंसिल हो गया' : 'Order Cancelled',
+      language === 'hi'
+        ? `ऑर्डर ${updated.orderNumber} सफलतापूर्वक कैंसिल कर दिया गया है`
+        : `Order ${updated.orderNumber} has been cancelled successfully.`,
+      'info'
+    );
+    return updated;
   };
 
   const updateOrderPayment = async (orderId: string, paymentStatus: PaymentStatus, method?: string) => {
@@ -1323,6 +1374,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         placeCustomerOrder,
         submitWaiterCall,
         updateOrderStatus,
+        cancelCustomerOrder,
         updateOrderPayment,
         deleteOrder,
         clearAllOrders,

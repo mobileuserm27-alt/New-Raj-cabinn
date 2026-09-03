@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A food order placed by a customer from a QR table",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "tableNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "status": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "cookingNotes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "restaurantId", "tableNumber", "status", "items", "grandTotal"]
+    },
+    "WaiterCall": {
+      "title": "WaiterCall",
+      "description": "A customer request for service at a table",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "tableNumber": { "type": "string" },
+        "requestType": { "type": "string" },
+        "status": { "type": "string" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "restaurantId", "tableNumber", "requestType", "status"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of all live and historic restaurant orders"
+    },
+    "/waiterCalls/{callId}": {
+      "schema": "WaiterCall",
+      "description": "Collection of live table service requests"
+    }
+  }
+}

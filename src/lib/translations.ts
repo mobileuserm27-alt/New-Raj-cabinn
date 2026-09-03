@@ -56,6 +56,12 @@ export interface Translations {
   close: string;
   cancel: string;
   confirm: string;
+  cancelOrder: string;
+  cancelOrderConfirmTitle: string;
+  cancelOrderConfirmDesc: string;
+  orderCancelled: string;
+  orderCancelledNotice: string;
+  orderAgain: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -114,7 +120,13 @@ export const translations: Record<Language, Translations> = {
     trackOrder: 'Track Order',
     close: 'Close',
     cancel: 'Cancel',
-    confirm: 'Confirm'
+    confirm: 'Confirm',
+    cancelOrder: 'Cancel Order',
+    cancelOrderConfirmTitle: 'Cancel This Order?',
+    cancelOrderConfirmDesc: 'The restaurant kitchen will be notified immediately to stop preparing your dishes.',
+    orderCancelled: 'Order Cancelled',
+    orderCancelledNotice: 'This order has been cancelled. No amount is due. You can place a new order anytime.',
+    orderAgain: 'Order Again'
   },
   hi: {
     scanAndDine: 'स्कैन एंड डाइन',
@@ -171,6 +183,12 @@ export const translations: Record<Language, Translations> = {
     trackOrder: 'ऑर्डर देखें',
     close: 'बंद करें',
     cancel: 'रद्द करें',
-    confirm: 'पुष्टि करें'
+    confirm: 'पुष्टि करें',
+    cancelOrder: 'ऑर्डर कैंसिल करें',
+    cancelOrderConfirmTitle: 'क्या आप ऑर्डर कैंसिल करना चाहते हैं?',
+    cancelOrderConfirmDesc: 'किचन को तुरंत सूचना भेज दी जाएगी ताकि आपका खाना न बनाया जाए।',
+    orderCancelled: 'ऑर्डर कैंसिल हो गया',
+    orderCancelledNotice: 'यह ऑर्डर कैंसिल कर दिया गया है। कोई बिल देय नहीं है। आप जब चाहें नया ऑर्डर कर सकते हैं।',
+    orderAgain: 'नया ऑर्डर करें'
   }
 };

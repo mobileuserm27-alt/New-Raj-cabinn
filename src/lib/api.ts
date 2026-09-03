@@ -389,7 +389,7 @@ export const api = {
   },
 
   async updateOrderPayment(orderId: string, paymentStatus: PaymentStatus, paymentMethod?: string): Promise<Order> {
-    return safeFetch(
+    const updated = await safeFetch(
       () => fetch(`${API_BASE}/orders/${orderId}/payment`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -401,6 +401,8 @@ export const api = {
         return o;
       }
     );
+    await cloudSync.syncOrderStatusToCloud(updated);
+    return updated;
   },
 
   async deleteOrder(orderId: string, restaurantId?: string): Promise<boolean> {
@@ -451,7 +453,7 @@ export const api = {
   },
 
   async submitWaiterRequest(restaurantId: string, tableNumber: string, requestType: string, note?: string): Promise<WaiterRequest> {
-    return safeFetch(
+    const req = await safeFetch(
       () => fetch(`${API_BASE}/waiter-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -459,10 +461,12 @@ export const api = {
       }),
       () => localStore.createWaiterRequest(restaurantId, tableNumber, requestType, note)
     );
+    await cloudSync.syncWaiterRequestToCloud(req);
+    return req;
   },
 
   async resolveWaiterRequest(requestId: string): Promise<WaiterRequest> {
-    return safeFetch(
+    const res = await safeFetch(
       () => fetch(`${API_BASE}/waiter-requests/${requestId}/resolve`, { method: 'PUT' }),
       () => {
         const r = localStore.resolveWaiterRequest(requestId);
@@ -470,6 +474,8 @@ export const api = {
         return r;
       }
     );
+    await cloudSync.syncWaiterRequestUpdated(res);
+    return res;
   },
 
   // Staff
