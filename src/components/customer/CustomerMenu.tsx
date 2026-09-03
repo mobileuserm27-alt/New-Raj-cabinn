@@ -18,7 +18,8 @@ import {
   Droplets,
   Plus,
   ShieldCheck,
-  Maximize2
+  Maximize2,
+  Receipt
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FoodCard } from './FoodCard';
@@ -26,6 +27,7 @@ import { FoodDetailModal } from './FoodDetailModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusModal } from './OrderStatusModal';
 import { BillRequestModal } from './BillRequestModal';
+import { CallWaiterModal } from './CallWaiterModal';
 import { ChangeTableModal } from './ChangeTableModal';
 import { QuickWaterBottleModal } from './QuickWaterBottleModal';
 import { VegBadge } from './VegBadge';
@@ -49,6 +51,8 @@ export const CustomerMenu: React.FC = () => {
     setActiveOrderModal,
     selectedFoodDetail,
     setSelectedFoodDetail,
+    setIsCallWaiterOpen,
+    setIsBillRequestOpen,
     language,
     setLanguage,
     t,
@@ -236,6 +240,18 @@ export const CustomerMenu: React.FC = () => {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Call Waiter Button */}
+            <button
+              id="btn-header-call-waiter"
+              type="button"
+              onClick={() => setIsCallWaiterOpen(true)}
+              className="px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              title={language === 'hi' ? 'बैरा बुलाएं' : 'Call Waiter'}
+            >
+              <Bell className="w-3.5 h-3.5 text-rose-600 animate-swing" />
+              <span>{language === 'hi' ? 'बैरा' : 'Waiter'}</span>
+            </button>
+
             {/* Language Switch */}
             <button
               id="btn-switch-lang"
@@ -396,6 +412,39 @@ export const CustomerMenu: React.FC = () => {
               <span>{restaurant?.openingHours}</span>
             </div>
           </div>
+        </div>
+
+        {/* Table Quick Service Bar: Call Waiter & Request Bill */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            id="btn-customer-call-waiter"
+            onClick={() => setIsCallWaiterOpen(true)}
+            className="p-2.5 rounded-2xl bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-800 hover:text-rose-700 shadow-xs flex items-center gap-2.5 transition active:scale-[0.99] cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Bell className="w-4 h-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-xs font-black truncate">{t.callWaiter}</div>
+              <div className="text-[10px] text-stone-500 truncate">Water • Help • Table Clean</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            id="btn-customer-request-bill"
+            onClick={() => setIsBillRequestOpen(true)}
+            className="p-2.5 rounded-2xl bg-white hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 text-stone-800 hover:text-emerald-700 shadow-xs flex items-center gap-2.5 transition active:scale-[0.99] cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <Receipt className="w-4 h-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-xs font-black truncate">{t.requestBill}</div>
+              <div className="text-[10px] text-stone-500 truncate">Cash • UPI QR • Card</div>
+            </div>
+          </button>
         </div>
 
         {/* Customer Active Order Alert Banner if table placed an order */}
@@ -654,6 +703,7 @@ export const CustomerMenu: React.FC = () => {
       />
 
       <BillRequestModal />
+      <CallWaiterModal />
       <ChangeTableModal
         isOpen={isChangeTableOpen}
         onClose={() => setIsChangeTableOpen(false)}

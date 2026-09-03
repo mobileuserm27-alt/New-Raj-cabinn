@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   ShoppingBag,
+  ChefHat,
+  Bell,
   UtensilsCrossed,
   Layers,
   QrCode,
@@ -19,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { OrdersManager } from './OrdersManager';
+import { KitchenDisplay } from './KitchenDisplay';
+import { WaiterRequestsManager } from './WaiterRequestsManager';
 import { MenuManager } from './MenuManager';
 import { CategoryManager } from './CategoryManager';
 import { TableManager } from './TableManager';
@@ -35,6 +39,7 @@ export const AdminDashboard: React.FC = () => {
     adminTab,
     setAdminTab,
     orders,
+    waiterRequests,
     soundEnabled,
     setSoundEnabled,
     setView,
@@ -44,6 +49,8 @@ export const AdminDashboard: React.FC = () => {
   } = useApp();
 
   const pendingOrdersCount = orders.filter(o => o.status === 'received').length;
+  const activeKitchenCount = orders.filter(o => ['received', 'accepted', 'preparing'].includes(o.status)).length;
+  const pendingWaiterCalls = waiterRequests.filter(r => r.status === 'pending').length;
 
   const navItems: { id: AdminTab; label: string; icon: any; badge?: number; badgeColor?: string }[] = [
     {
@@ -52,6 +59,20 @@ export const AdminDashboard: React.FC = () => {
       icon: ShoppingBag,
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
       badgeColor: 'bg-rose-600 text-white'
+    },
+    {
+      id: 'kds',
+      label: 'Kitchen KDS',
+      icon: ChefHat,
+      badge: activeKitchenCount > 0 ? activeKitchenCount : undefined,
+      badgeColor: 'bg-amber-500 text-stone-900'
+    },
+    {
+      id: 'waiter_calls',
+      label: 'Waiter Calls',
+      icon: Bell,
+      badge: pendingWaiterCalls > 0 ? pendingWaiterCalls : undefined,
+      badgeColor: 'bg-rose-600 text-white animate-pulse'
     },
     { id: 'billing', label: 'Billing & Invoices', icon: Receipt },
     { id: 'tables', label: 'Tables & QR', icon: QrCode },
@@ -190,7 +211,9 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Main Tab View Canvas */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
-        {(adminTab === 'orders' || adminTab === 'kds' || adminTab === 'waiter_calls') && <OrdersManager />}
+        {adminTab === 'orders' && <OrdersManager />}
+        {adminTab === 'kds' && <KitchenDisplay />}
+        {adminTab === 'waiter_calls' && <WaiterRequestsManager />}
         {adminTab === 'menu' && <MenuManager />}
         {adminTab === 'categories' && <CategoryManager />}
         {adminTab === 'tables' && <TableManager />}

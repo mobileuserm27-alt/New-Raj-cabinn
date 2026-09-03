@@ -25,6 +25,8 @@ import { EndOfDayReportModal } from './EndOfDayReportModal';
 export const OrdersManager: React.FC = () => {
   const {
     orders,
+    waiterRequests,
+    setAdminTab,
     updateOrderStatus,
     updateOrderPayment,
     deleteOrder,
@@ -133,6 +135,38 @@ export const OrdersManager: React.FC = () => {
 
         {/* Action icons & Clear History Button */}
         <div className="flex items-center flex-wrap gap-2">
+          {/* Quick jump to KDS */}
+          <button
+            id="btn-goto-kds"
+            type="button"
+            onClick={() => setAdminTab('kds')}
+            className="px-3 py-2 rounded-xl text-xs font-bold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Open Kitchen Display System"
+          >
+            <ChefHat className="w-4 h-4 text-amber-600" />
+            <span>Kitchen KDS</span>
+          </button>
+
+          {/* Quick jump to Waiter Calls */}
+          <button
+            id="btn-goto-waiter-calls"
+            type="button"
+            onClick={() => setAdminTab('waiter_calls')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
+              waiterRequests.filter(r => r.status === 'pending').length > 0
+                ? 'border-rose-300 bg-rose-50 text-rose-700 animate-pulse'
+                : 'border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700'
+            }`}
+            title="Open Table Waiter Calls"
+          >
+            <Bell className="w-4 h-4 text-rose-600" />
+            <span>
+              Waiter Calls
+              {waiterRequests.filter(r => r.status === 'pending').length > 0 &&
+                ` (${waiterRequests.filter(r => r.status === 'pending').length})`}
+            </span>
+          </button>
+
           {/* ⚡ Send Live Single Test Order */}
           <button
             id="btn-demo-live-order"
